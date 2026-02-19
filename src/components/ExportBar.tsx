@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { GIFEncoder, quantize, applyPalette } from 'gifenc';
 import type { AppState } from '../types';
 import { DIRECTIONS_4, DIRECTIONS_8 } from '../types';
 import { ColorShiftCache } from '../colorShift';
@@ -171,6 +172,113 @@ export function ExportBar({ state, cache }: ExportBarProps) {
     }
   }
 
+  /**
+   * Apply the current playback mode to the frame order.
+   * 'forward'  — unchanged
+   * 'reverse'  — reversed
+   * 'pingpong' — forward then reversed (minus duplicate endpoints)
+   */
+  function applyPlaybackMode(frames: HTMLCanvasElement[]): HTMLCanvasElement[] {
+    const mode = state.previewMode;
+    if (mode === 'reverse') return [...frames].reverse();
+    if (mode === 'pingpong') {
+      if (frames.length <= 2) return frames;
+      const back = [...frames].reverse().slice(1, -1);   // drop first & last (already in forward pass)
+      return [...frames, ...back];
+    }
+    return frames;
+  }
+
+  /** Encode an array of frame canvases into an animated GIF blob with transparency. */
+  function encodeGif(frames: HTMLCanvasElement[], delayMs: number): Blob {
+    const w = frames[0].width, h = frames[0].height;
+    const gif = GIFEncoder();
+
+    for (let i = 0; i < frames.length; i++) {
+      const ctx = frames[i].getContext('2d')!;
+      const rgba = ctx.getImageData(0, 0, w, h).data;
+      const palette = quantize(rgba, 256, { format: 'rgba4444', clearAlpha: true, clearAlphaThreshold: 128 });
+      const index = applyPalette(rgba, palette, 'rgba4444');
+
+      // Find the palette entry with alpha=0 for GIF transparency
+      let transparentIndex = 0;
+      let hasTransparent = false;
+      for (let p = 0; p < palette.length; p++) {
+        if (palette[p].length >= 4 && (palette[p] as [number, number, number, number])[3] === 0) {
+          transparentIndex = p;
+          hasTransparent = true;
+          break;
+        }
+      }
+
+      gif.writeFrame(index, w, h, {
+        palette,
+        delay: delayMs,
+        repeat: 0,                          // loop forever
+        dispose: 2,                         // restore to background (needed for transparency between frames)
+        transparent: hasTransparent,
+        transparentIndex,
+      });
+    }
+
+    gif.finish();
+    return new Blob([gif.bytes()], { type: 'image/gif' });
+  }
+
+  async function exportGifDirection() {
+    setExporting('gifDir');
+    try {
+      const dirRow = getDirectionRow(previewDirection, config.directions);
+      const delayMs = Math.round(1000 / state.previewFps);
+      const rawFrames: HTMLCanvasElement[] = [];
+
+      for (let f = 0; f < config.framesPerDirection; f++) {
+        const cv = document.createElement('canvas');
+        cv.width = config.frameWidth;
+        cv.height = config.frameHeight;
+        compositeFrame(cv, layers, config, dirRow, f, cache);
+        rawFrames.push(scaleCanvas(cv, exportScale));
+      }
+
+      const frames = applyPlaybackMode(rawFrames);
+      const blob = encodeGif(frames, delayMs);
+      const suffix = exportScale > 1 ? `@${exportScale}x` : '';
+      const modeTag = state.previewMode !== 'forward' ? `-${state.previewMode}` : '';
+      downloadBlob(blob, `${previewDirection}${modeTag}${suffix}.gif`);
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  async function exportGifAllDirections() {
+    setExporting('gifAll');
+    try {
+      const dirs = config.directions === 4 ? [...DIRECTIONS_4] : [...DIRECTIONS_8];
+      const delayMs = Math.round(1000 / state.previewFps);
+      const zip = new JSZip();
+
+      for (let d = 0; d < config.directions; d++) {
+        const rawFrames: HTMLCanvasElement[] = [];
+        for (let f = 0; f < config.framesPerDirection; f++) {
+          const cv = document.createElement('canvas');
+          cv.width = config.frameWidth;
+          cv.height = config.frameHeight;
+          compositeFrame(cv, layers, config, d, f, cache);
+          rawFrames.push(scaleCanvas(cv, exportScale));
+        }
+        const frames = applyPlaybackMode(rawFrames);
+        const blob = encodeGif(frames, delayMs);
+        zip.file(`${dirs[d]}.gif`, blob);
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const suffix = exportScale > 1 ? `@${exportScale}x` : '';
+      saveAs(zipBlob, `gifs${suffix}.zip`);
+    } finally {
+      setExporting(null);
+    }
+  }
+
   const hasLayers = layers.some(l => l.visible && l.image);
 
   return (
@@ -254,6 +362,29 @@ export function ExportBar({ state, cache }: ExportBarProps) {
         title={selectedLayer ? `Export current frame of "${selectedLayer.name}" as PNG` : 'Select a layer to export'}
       >
         {exporting === 'layerFrame' ? '⏳' : '🖼'} Layer Frame
+      </button>
+
+      <div className="w-px h-4 bg-gray-700" />
+
+      {/* GIF export */}
+      <span className="text-xs text-gray-500">GIF:</span>
+
+      <button
+        onClick={exportGifDirection}
+        disabled={!hasLayers || !!exporting}
+        className="text-xs bg-amber-700 hover:bg-amber-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-1"
+        title={`Export ${previewDirection} animation as GIF at ${state.previewFps} FPS`}
+      >
+        {exporting === 'gifDir' ? '⏳' : '🎞'} Direction GIF
+      </button>
+
+      <button
+        onClick={exportGifAllDirections}
+        disabled={!hasLayers || !!exporting}
+        className="text-xs bg-amber-700 hover:bg-amber-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-1"
+        title={`Export all ${config.directions} directions as separate GIFs in a ZIP at ${state.previewFps} FPS`}
+      >
+        {exporting === 'gifAll' ? '⏳' : '📦'} All Dirs GIF
       </button>
 
       {!hasLayers && (

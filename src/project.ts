@@ -9,7 +9,7 @@
 
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
-import type { AppState, Layer, ProjectConfig, PlaybackMode, AppTab, Direction } from './types';
+import type { AppState, Layer, LibraryAsset, ProjectConfig, PlaybackMode, AppTab, Direction } from './types';
 
 // ─── Serialisable types ───────────────────────────────────────────────────────
 
@@ -26,6 +26,16 @@ export interface SavedLayer {
   inputLayout: Layer['inputLayout'];
   frameOffsets?: Layer['frameOffsets'];
   // image lives in layers/<id>.png — not here
+}
+
+export interface SavedLibraryAsset {
+  id: string;
+  name: string;
+  tags: string[];
+  width: number;
+  height: number;
+  createdAt: number;
+  // image lives in library/<id>.png — not here
 }
 
 export interface SavedUi {
@@ -45,6 +55,7 @@ export interface ProjectFile {
   config: ProjectConfig;
   layers: SavedLayer[];
   ui: SavedUi;
+  library?: SavedLibraryAsset[];
 }
 
 // ─── Save ─────────────────────────────────────────────────────────────────────
@@ -82,6 +93,28 @@ export async function saveProject(state: AppState, filename = 'project.spritebat
     }
   }
 
+  // ── Library assets ──────────────────────────────────────────────────────────
+  const savedLibrary: SavedLibraryAsset[] = [];
+
+  if (state.library.length > 0) {
+    const libraryFolder = zip.folder('library')!;
+
+    for (const asset of state.library) {
+      savedLibrary.push({
+        id:        asset.id,
+        name:      asset.name,
+        tags:      asset.tags,
+        width:     asset.width,
+        height:    asset.height,
+        createdAt: asset.createdAt,
+      });
+
+      const response = await fetch(asset.objectUrl);
+      const blob = await response.blob();
+      libraryFolder.file(`${asset.id}.png`, blob);
+    }
+  }
+
   const projectFile: ProjectFile = {
     version: 1,
     config:  state.config,
@@ -97,6 +130,7 @@ export async function saveProject(state: AppState, filename = 'project.spritebat
       sheetZoom:        state.sheetZoom,
       activeTab:        state.activeTab,
     },
+    ...(savedLibrary.length > 0 && { library: savedLibrary }),
   };
 
   zip.file('project.json', JSON.stringify(projectFile, null, 2));
@@ -110,12 +144,13 @@ export async function saveProject(state: AppState, filename = 'project.spritebat
 export interface LoadedProject {
   config: ProjectConfig;
   layers: Layer[];
+  library: LibraryAsset[];
   ui: SavedUi;
 }
 
 /**
  * Read a .spritebat file (ZIP) and reconstruct fully hydrated Layer objects
- * with live HTMLImageElement references.
+ * and LibraryAsset objects with live HTMLImageElement references.
  */
 export async function loadProject(file: File): Promise<LoadedProject> {
   const zip = await JSZip.loadAsync(file);
@@ -161,9 +196,35 @@ export async function loadProject(file: File): Promise<LoadedProject> {
     });
   }
 
+  // 3. Hydrate library assets
+  const library: LibraryAsset[] = [];
+
+  if (projectFile.library) {
+    for (const saved of projectFile.library) {
+      const pngFile = zip.file(`library/${saved.id}.png`);
+      if (!pngFile) continue;    // skip if image is missing
+
+      const blob = await pngFile.async('blob');
+      const objectUrl = URL.createObjectURL(blob);
+      const image = await loadImage(objectUrl);
+
+      library.push({
+        id:        saved.id,
+        name:      saved.name,
+        tags:      saved.tags,
+        objectUrl,
+        image,
+        width:     saved.width,
+        height:    saved.height,
+        createdAt: saved.createdAt,
+      });
+    }
+  }
+
   return {
     config: projectFile.config,
     layers,
+    library,
     ui:     projectFile.ui,
   };
 }

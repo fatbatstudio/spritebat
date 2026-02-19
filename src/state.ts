@@ -8,7 +8,7 @@ export const initialState: AppState = {
     frameHeight: 48,
     framesPerDirection: 10,
     directions: 4,
-    defaultInputLayout: { cols: 10, rows: 4 },  // 10 frames × 4 directions
+    defaultInputLayout: { cols: 10, rows: 4 },
     exportLayout: { cols: 10, rows: 4 },
   },
   layers: [],
@@ -25,7 +25,8 @@ export const initialState: AppState = {
   splitter: {
     image: null,
     objectUrl: null,
-    selection: null,
+    selectionMask: null,
+    selectionBounds: null,
     extractedCanvas: null,
     posX: 0,
     posY: 0,
@@ -33,6 +34,7 @@ export const initialState: AppState = {
   },
   showConfig: false,
   frameOffsetMode: false,
+  library: [],
 };
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -45,10 +47,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
 
       let layers = state.layers;
       if (action.resetLayerLayouts) {
-        // Force all layers to adopt the new default input layout
         layers = layers.map(l => ({ ...l, inputLayout: { ...newDefault } }));
       } else if (defaultChanged) {
-        // Auto-update only layers that still match the old default
         layers = layers.map(l =>
           l.inputLayout.cols === oldDefault.cols && l.inputLayout.rows === oldDefault.rows
             ? { ...l, inputLayout: { ...newDefault } }
@@ -91,7 +91,6 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     }
 
     case 'SELECT_LAYER':
-      // Exit frame offset mode when switching layers to avoid accidental edits
       return { ...state, selectedLayerId: action.id, frameOffsetMode: false };
 
     case 'SET_TAB':
@@ -128,7 +127,6 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, showConfig: !state.showConfig };
 
     case 'SET_FRAME_OFFSET_MODE':
-      // Pause playback when entering the mode so user can step through frames cleanly
       return {
         ...state,
         frameOffsetMode: action.active,
@@ -149,10 +147,49 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         canvasZoom:       action.canvasZoom,
         sheetZoom:        action.sheetZoom,
         activeTab:        action.activeTab,
-        // Reset transient state
+        library:          action.library,
         previewPlaying:   false,
         frameOffsetMode:  false,
         showConfig:       false,
+      };
+
+    case 'ADD_LIBRARY_ASSET':
+      return { ...state, library: [...state.library, action.asset] };
+
+    case 'REMOVE_LIBRARY_ASSET':
+      return { ...state, library: state.library.filter(a => a.id !== action.id) };
+
+    case 'UPDATE_LIBRARY_ASSET':
+      return {
+        ...state,
+        library: state.library.map(a =>
+          a.id === action.id ? { ...a, ...action.updates } : a
+        ),
+      };
+
+    case 'MERGE_LAYERS_DOWN': {
+      // Replace layers[index] and layers[index-1] with mergedLayer at index-1
+      const layers = [...state.layers];
+      layers.splice(action.index - 1, 2, action.mergedLayer);
+      const selectedLayerId =
+        state.selectedLayerId === state.layers[action.index]?.id ||
+        state.selectedLayerId === state.layers[action.index - 1]?.id
+          ? action.mergedLayer.id
+          : state.selectedLayerId;
+      return { ...state, layers, selectedLayerId };
+    }
+
+    case 'CLOSE_PROJECT':
+      // Clear project data; preserve config and zoom/UI prefs.
+      return {
+        ...initialState,
+        config:       state.config,
+        canvasZoom:   state.canvasZoom,
+        sheetZoom:    state.sheetZoom,
+        previewZoom:  state.previewZoom,
+        previewFps:   state.previewFps,
+        previewMode:  state.previewMode,
+        activeTab:    state.activeTab,
       };
 
     default:

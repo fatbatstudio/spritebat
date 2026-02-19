@@ -56,6 +56,7 @@ const UNDOABLE: ReadonlySet<AppAction['type']> = new Set([
   'REMOVE_LAYER',
   'UPDATE_LAYER',        // committed changes (pointer up, blur, button clicks)
   'REORDER_LAYERS',
+  'MERGE_LAYERS_DOWN',
   // UPDATE_LAYER_TRANSIENT is intentionally excluded — slider drag feedback only
 ]);
 
@@ -106,8 +107,8 @@ export function undoRedoReducer(
     };
   }
 
-  // ── LOAD_PROJECT — replace everything, clear history ─────────────────────
-  if (action.type === 'LOAD_PROJECT') {
+  // ── LOAD_PROJECT / CLOSE_PROJECT — replace everything, clear history ─────
+  if (action.type === 'LOAD_PROJECT' || action.type === 'CLOSE_PROJECT') {
     const nextPresent = appReducer(state.present, action);
     return { past: [], present: nextPresent, future: [] };
   }

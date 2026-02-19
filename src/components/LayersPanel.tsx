@@ -2,7 +2,9 @@ import React, { useRef, useState } from 'react';
 import type { Layer, LayerType, AppAction, ProjectConfig } from '../types';
 import { NumericInput } from './NumericInput';
 import { TileToSheetModal } from './TileToSheetModal';
+import { ClearFramesModal } from './ClearFramesModal';
 import { ColorShiftCache } from '../colorShift';
+import { renderFullSheet } from '../compositing';
 
 const LAYER_TYPES: LayerType[] = ['Base', 'Hair', 'Top', 'Bottom', 'Accessory', 'Hat', 'Weapon', 'Custom'];
 
@@ -22,9 +24,10 @@ interface LayersPanelProps {
   selectedLayerId: string | null;
   config: ProjectConfig;
   dispatch: React.Dispatch<AppAction>;
+  cache: ColorShiftCache;
 }
 
-export function LayersPanel({ layers, selectedLayerId, config, dispatch }: LayersPanelProps) {
+export function LayersPanel({ layers, selectedLayerId, config, dispatch, cache }: LayersPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
@@ -94,6 +97,40 @@ export function LayersPanel({ layers, selectedLayerId, config, dispatch }: Layer
   function onDragEnd() {
     setDraggingIndex(null);
     setDragOverIndex(null);
+  }
+
+  function handleMergeDown(index: number) {
+    if (index < 1) return;
+    const topLayer = layers[index];
+    const bottomLayer = layers[index - 1];
+    // Composite just these two layers into a full sheet
+    const sheet = renderFullSheet([bottomLayer, topLayer], config, cache);
+    sheet.toBlob(blob => {
+      if (!blob) return;
+      const objectUrl = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        // Revoke old object URLs (but not if they're shared with library assets)
+        if (topLayer.objectUrl) URL.revokeObjectURL(topLayer.objectUrl);
+        if (bottomLayer.objectUrl) URL.revokeObjectURL(bottomLayer.objectUrl);
+        const mergedLayer: Layer = {
+          id: crypto.randomUUID(),
+          name: `${bottomLayer.name} + ${topLayer.name}`,
+          type: bottomLayer.type,
+          visible: true,
+          opacity: 100,
+          hsl: { hue: 0, saturation: 0, lightness: 0 },
+          image: img,
+          objectUrl,
+          fileName: 'merged.png',
+          offsetX: 0,
+          offsetY: 0,
+          inputLayout: { ...config.defaultInputLayout },
+        };
+        dispatch({ type: 'MERGE_LAYERS_DOWN', index, mergedLayer });
+      };
+      img.src = objectUrl;
+    }, 'image/png');
   }
 
   const reversedLayers = [...layers].reverse();
@@ -174,6 +211,19 @@ export function LayersPanel({ layers, selectedLayerId, config, dispatch }: Layer
                 {layer.visible ? '👁' : '🚫'}
               </button>
 
+              {index > 0 && (
+                <button
+                  className="text-gray-600 hover:text-amber-400 flex-shrink-0 text-sm"
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleMergeDown(index);
+                  }}
+                  title="Merge down — composite this layer onto the one below"
+                >
+                  ⤵
+                </button>
+              )}
+
               <button
                 className="text-gray-600 hover:text-red-400 flex-shrink-0 text-sm"
                 onClick={e => {
@@ -212,6 +262,7 @@ interface LayerPropertiesProps {
 
 export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMode }: LayerPropertiesProps) {
   const [showTileModal, setShowTileModal] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
 
   if (!layer) {
     return (
@@ -397,6 +448,19 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
         </button>
       </div>
 
+      {/* Clear Frames */}
+      <div className="flex flex-col gap-1 flex-shrink-0">
+        <label className="text-xs text-gray-400">Edit cells</label>
+        <button
+          className="text-xs bg-gray-700 hover:bg-red-900 hover:text-red-300 text-gray-300 px-2 py-1 rounded transition-colors whitespace-nowrap"
+          onClick={() => setShowClearModal(true)}
+          title="Erase selected frame cells to transparent"
+          disabled={!layer.image}
+        >
+          ✂ Clear Frames
+        </button>
+      </div>
+
       {/* Frame Offset Mode toggle */}
       <div className="flex flex-col gap-1 flex-shrink-0">
         <label className="text-xs text-gray-400">
@@ -451,6 +515,21 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
             setShowTileModal(false);
           }}
           onClose={() => setShowTileModal(false)}
+        />
+      )}
+
+      {/* Clear Frames modal */}
+      {showClearModal && layer.image && (
+        <ClearFramesModal
+          layer={layer}
+          config={config}
+          onApply={(newImage, newObjectUrl) => {
+            if (layer.objectUrl) URL.revokeObjectURL(layer.objectUrl);
+            cache.invalidate(layer.id);
+            update({ image: newImage, objectUrl: newObjectUrl });
+            setShowClearModal(false);
+          }}
+          onClose={() => setShowClearModal(false)}
         />
       )}
 

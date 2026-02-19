@@ -30,7 +30,7 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
   const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
   const p = 2 * l - q;
   const hue2rgb = (p: number, q: number, t: number) => {
-    let tt = ((t % 1) + 1) % 1;
+    const tt = ((t % 1) + 1) % 1;
     if (tt < 1/6) return p + (q - p) * 6 * tt;
     if (tt < 1/2) return q;
     if (tt < 2/3) return p + (q - p) * (2/3 - tt) * 6;

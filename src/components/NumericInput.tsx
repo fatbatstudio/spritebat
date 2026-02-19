@@ -23,7 +23,7 @@ export function NumericInput({ value, min, max, step, onChange, className }: Num
   // display — but only if we're not in the middle of editing it ourselves.
   useEffect(() => {
     if (!focused) {
-      setRaw(String(value));
+      setRaw(String(value)); // eslint-disable-line react-hooks/set-state-in-effect
     }
   }, [value, focused]);
 

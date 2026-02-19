@@ -12,23 +12,31 @@ interface MainCanvasProps {
 }
 
 // ── Source sheet overlay ───────────────────────────────────────────────────────
-// Shows the raw input PNG for a layer with frame grid and highlighted current frame.
+// Renders the selected layer composited in isolation — same grid as the export
+// sheet, same offsets applied — so the user sees exactly how this layer
+// contributes to each frame, positioned correctly.
 
 interface SourceSheetProps {
   layer: Layer;
-  config: { frameWidth: number; frameHeight: number; framesPerDirection: number; directions: number };
+  config: { frameWidth: number; frameHeight: number; framesPerDirection: number; directions: number; exportLayout: { cols: number; rows: number } };
   dirRow: number;
   frameIndex: number;
   zoom: number;
+  cache: ColorShiftCache;
 }
 
-function SourceSheetOverlay({ layer, config, dirRow, frameIndex, zoom }: SourceSheetProps) {
+function SourceSheetOverlay({ layer, config, dirRow, frameIndex, zoom, cache }: SourceSheetProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { frameWidth, frameHeight, framesPerDirection, directions } = config;
-  const { cols, rows } = layer.inputLayout;
+  const { frameWidth, frameHeight, framesPerDirection, directions, exportLayout } = config;
+  const { cols, rows } = exportLayout;
   const total = framesPerDirection * directions;
+
+  // Current-frame highlight uses export layout position
   const currentN = flatIndex(dirRow, frameIndex, framesPerDirection);
-  const { sx: highlightSx, sy: highlightSy } = frameRect(currentN, layer.inputLayout, frameWidth, frameHeight);
+  const hlCol = currentN % cols;
+  const hlRow = Math.floor(currentN / cols);
+  const highlightX = hlCol * frameWidth;
+  const highlightY = hlRow * frameHeight;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -40,15 +48,38 @@ function SourceSheetOverlay({ layer, config, dirRow, frameIndex, zoom }: SourceS
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, w, h);
 
-    // Draw source image
-    ctx.drawImage(layer.image, 0, 0);
+    // Composite this layer into each export-grid cell, applying offset + HSL —
+    // exactly as compositeFrame does, but for a single layer.
+    const shiftedCanvas = cache.get(layer.id, layer.image, layer.hsl);
+    ctx.globalAlpha = layer.opacity / 100;
 
-    // Shade cells that are beyond total frame count (unused)
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    for (let n = total; n < cols * rows; n++) {
-      const { sx, sy } = frameRect(n, layer.inputLayout, frameWidth, frameHeight);
-      ctx.fillRect(sx, sy, frameWidth, frameHeight);
+    for (let d = 0; d < directions; d++) {
+      for (let f = 0; f < framesPerDirection; f++) {
+        const n = flatIndex(d, f, framesPerDirection);
+        if (n >= total) continue;
+
+        // Where this frame lives in the export sheet
+        const destCol = n % cols;
+        const destRow = Math.floor(n / cols);
+        const destX = destCol * frameWidth;
+        const destY = destRow * frameHeight;
+
+        // Where to sample from in the (potentially HSL-shifted) source image
+        const { sx, sy } = frameRect(n, layer.inputLayout, frameWidth, frameHeight);
+
+        // Per-frame and global offsets
+        const fof = layer.frameOffsets?.[f];
+        const ox = layer.offsetX + (fof?.x ?? 0);
+        const oy = layer.offsetY + (fof?.y ?? 0);
+
+        ctx.drawImage(
+          shiftedCanvas,
+          sx, sy, frameWidth, frameHeight,
+          destX + ox, destY + oy, frameWidth, frameHeight
+        );
+      }
     }
+    ctx.globalAlpha = 1;
 
     // Draw grid lines
     ctx.strokeStyle = 'rgba(99,102,241,0.35)';
@@ -60,34 +91,15 @@ function SourceSheetOverlay({ layer, config, dirRow, frameIndex, zoom }: SourceS
       ctx.beginPath(); ctx.moveTo(c * frameWidth, 0); ctx.lineTo(c * frameWidth, h); ctx.stroke();
     }
 
-    // Label each cell with its flat index (n)
-    ctx.font = `${Math.max(8, Math.min(11, frameHeight / 4))}px monospace`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    for (let n = 0; n < Math.min(total, cols * rows); n++) {
-      const { sx, sy } = frameRect(n, layer.inputLayout, frameWidth, frameHeight);
-      ctx.fillStyle = 'rgba(200,200,255,0.5)';
-      ctx.fillText(String(n), sx + frameWidth / 2, sy + frameHeight / 2);
-    }
-
     // Highlight current frame
     ctx.strokeStyle = '#6366f1';
     ctx.lineWidth = 1.5;
-    ctx.strokeRect(highlightSx + 0.75, highlightSy + 0.75, frameWidth - 1.5, frameHeight - 1.5);
+    ctx.strokeRect(highlightX + 0.75, highlightY + 0.75, frameWidth - 1.5, frameHeight - 1.5);
 
-    // Red outline if out of bounds
-    if (highlightSx + frameWidth > w || highlightSy + frameHeight > h) {
-      ctx.fillStyle = 'rgba(239,68,68,0.3)';
-      ctx.fillRect(highlightSx, highlightSy, frameWidth, frameHeight);
-      ctx.strokeStyle = '#ef4444';
-      ctx.strokeRect(highlightSx + 0.75, highlightSy + 0.75, frameWidth - 1.5, frameHeight - 1.5);
-    }
-  }, [layer, cols, rows, frameWidth, frameHeight, total, currentN, highlightSx, highlightSy]);
+  }, [layer, cols, rows, frameWidth, frameHeight, total, directions, framesPerDirection, currentN, highlightX, highlightY, cache]);
 
   const naturalW = cols * frameWidth;
   const naturalH = rows * frameHeight;
-  // The outer container is overflow-auto — just apply zoom directly, no cap.
-  const scale = zoom;
 
   return (
     <div className="flex flex-col items-center gap-1">
@@ -98,18 +110,15 @@ function SourceSheetOverlay({ layer, config, dirRow, frameIndex, zoom }: SourceS
         <canvas
           ref={canvasRef}
           style={{
-            width: naturalW * scale,
-            height: naturalH * scale,
+            width: naturalW * zoom,
+            height: naturalH * zoom,
             display: 'block',
             imageRendering: zoom > 1 ? 'pixelated' : 'auto',
           }}
         />
       </div>
       <span className="text-xs text-gray-600">
-        Source: {cols}×{rows} layout · {naturalW}×{naturalH}px · frame #{currentN} highlighted
-        {(highlightSx + frameWidth > naturalW || highlightSy + frameHeight > naturalH) && (
-          <span className="text-red-400 ml-1">⚠ frame out of bounds!</span>
-        )}
+        {cols}×{rows} export layout · {naturalW}×{naturalH}px · frame #{currentN} highlighted
       </span>
     </div>
   );
@@ -402,10 +411,8 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
         {selectedLayer?.image && (
           <div className="flex flex-col items-center gap-2 w-full">
             <span className="text-xs text-gray-500 uppercase tracking-wider">
-              Source Sheet — <span className="text-indigo-400 normal-case">{selectedLayer.name}</span>
-              <span className="text-gray-700 ml-1 normal-case">
-                (input layout: {selectedLayer.inputLayout.cols}×{selectedLayer.inputLayout.rows})
-              </span>
+              Layer Preview — <span className="text-indigo-400 normal-case">{selectedLayer.name}</span>
+              <span className="text-gray-700 ml-1 normal-case">(this layer only)</span>
             </span>
             <SourceSheetOverlay
               layer={selectedLayer}
@@ -413,6 +420,7 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
               dirRow={dirRow}
               frameIndex={previewFrame}
               zoom={sheetZoom}
+              cache={cache}
             />
           </div>
         )}

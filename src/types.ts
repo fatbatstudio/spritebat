@@ -13,11 +13,6 @@ export interface HSLAdjustment {
 
 /**
  * Describes how frames are physically arranged in a sprite sheet PNG.
- * cols × rows must equal directions × framesPerDirection.
- * e.g. 4 dirs × 3 frames = 12 total frames:
- *   - Classic:    cols=3, rows=4  (3 frames across, 1 row per direction)
- *   - Single row: cols=12, rows=1 (all frames in one row)
- *   - Any split:  cols=6, rows=2  etc.
  */
 export interface SheetLayout {
   cols: number;
@@ -36,12 +31,7 @@ export interface Layer {
   fileName: string;
   offsetX: number;
   offsetY: number;
-  /** How this layer's source PNG is laid out. Defaults to match project config. */
   inputLayout: SheetLayout;
-  /**
-   * Optional per-frame position adjustments (indexed by frame index within a direction).
-   * Added on top of offsetX/offsetY. Useful for animating a hat bobbing with the character.
-   */
   frameOffsets?: Array<{ x: number; y: number }>;
 }
 
@@ -50,24 +40,48 @@ export interface ProjectConfig {
   frameHeight: number;
   framesPerDirection: number;
   directions: 4 | 8;
-  /** Default input layout assumed when adding new layers */
   defaultInputLayout: SheetLayout;
-  /** Layout used when exporting the full composite sheet */
   exportLayout: SheetLayout;
 }
 
-export type AppTab = 'composer' | 'splitter';
+export type AppTab = 'composer' | 'splitter' | 'library';
 
 export type PlaybackMode = 'forward' | 'reverse' | 'pingpong';
+
+export type SplitterTool = 'box' | 'lasso';
+export type SelectionMode = 'replace' | 'add' | 'subtract';
 
 export interface SplitterState {
   image: HTMLImageElement | null;
   objectUrl: string | null;
-  selection: { x: number; y: number; w: number; h: number } | null;
+  /**
+   * The selection mask canvas — same pixel dimensions as `image`.
+   * White pixels = selected, transparent/black = not selected.
+   * null means no selection exists.
+   */
+  selectionMask: HTMLCanvasElement | null;
+  /**
+   * Bounding box of the current selection mask (in image-pixel space).
+   * Derived from selectionMask for display and crop purposes.
+   */
+  selectionBounds: { x: number; y: number; w: number; h: number } | null;
   extractedCanvas: HTMLCanvasElement | null;
   posX: number;
   posY: number;
   scale: number;
+}
+
+// ─── Asset Library ────────────────────────────────────────────────────────────
+
+export interface LibraryAsset {
+  id: string;
+  name: string;
+  tags: string[];
+  objectUrl: string;
+  image: HTMLImageElement;
+  width: number;
+  height: number;
+  createdAt: number;
 }
 
 export interface AppState {
@@ -85,8 +99,8 @@ export interface AppState {
   sheetZoom: number;
   splitter: SplitterState;
   showConfig: boolean;
-  /** When true, dragging the main canvas current-frame view sets per-frame offsets on the selected layer */
   frameOffsetMode: boolean;
+  library: LibraryAsset[];
 }
 
 export type AppAction =
@@ -112,17 +126,21 @@ export type AppAction =
   | { type: 'LOAD_PROJECT'; config: ProjectConfig; layers: Layer[];
       selectedLayerId: string | null; previewDirection: Direction;
       previewFrame: number; previewMode: PlaybackMode; previewFps: number;
-      previewZoom: number; canvasZoom: number; sheetZoom: number; activeTab: AppTab };
+      previewZoom: number; canvasZoom: number; sheetZoom: number; activeTab: AppTab;
+      library: LibraryAsset[] }
+  | { type: 'ADD_LIBRARY_ASSET'; asset: LibraryAsset }
+  | { type: 'REMOVE_LIBRARY_ASSET'; id: string }
+  | { type: 'UPDATE_LIBRARY_ASSET'; id: string; updates: Partial<Pick<LibraryAsset, 'name' | 'tags'>> }
+  /** Merge the layer at `index` down into the layer at `index - 1`, replacing both with one flattened layer. */
+  | { type: 'MERGE_LAYERS_DOWN'; index: number; mergedLayer: Layer }
+  /** Reset the project to a blank slate (keeps config, clears layers + library + splitter). */
+  | { type: 'CLOSE_PROJECT' };
 
 /** Total logical frames in a project */
 export function totalFrames(config: ProjectConfig): number {
   return config.directions * config.framesPerDirection;
 }
 
-/**
- * Given a flat frame index n (0-based), return the source pixel rect
- * within a sheet that uses the given layout and frame dimensions.
- */
 export function frameRect(
   n: number,
   layout: SheetLayout,
@@ -134,9 +152,6 @@ export function frameRect(
   return { sx: col * frameWidth, sy: row * frameHeight };
 }
 
-/**
- * Flat frame index from direction row + frame-within-direction.
- */
 export function flatIndex(directionRow: number, frameIndex: number, framesPerDirection: number): number {
   return directionRow * framesPerDirection + frameIndex;
 }
