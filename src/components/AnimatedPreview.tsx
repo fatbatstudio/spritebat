@@ -114,7 +114,7 @@ export function AnimatedPreview({ state, dispatch, cache }: AnimatedPreviewProps
         >
           <canvas
             ref={canvasRef}
-            style={{ width: displaySize, height: displayHeight, maxWidth: '100%' }}
+            style={{ width: displaySize, height: displayHeight, maxWidth: '100%', imageRendering: previewZoom >= 1 ? 'pixelated' : 'auto' }}
           />
         </div>
 
@@ -220,7 +220,7 @@ export function AnimatedPreview({ state, dispatch, cache }: AnimatedPreviewProps
         <div className="flex flex-col gap-1 w-full">
           <label className="text-xs text-gray-400">Zoom</label>
           <div className="flex gap-1">
-            {[1, 2, 4, 8].map(z => (
+            {[0.5, 1, 2, 4, 8].map(z => (
               <button
                 key={z}
                 onClick={() => dispatch({ type: 'SET_PREVIEW_ZOOM', zoom: z })}
@@ -228,7 +228,7 @@ export function AnimatedPreview({ state, dispatch, cache }: AnimatedPreviewProps
                   previewZoom === z ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
-                {z}x
+                {z < 1 ? `1/${1/z}` : `${z}x`}
               </button>
             ))}
           </div>

@@ -1,11 +1,15 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { AppState, AppAction, LibraryAsset, SplitterTool, SelectionMode } from '../types';
-import { trimTransparent } from '../compositing';
+import { DIRECTIONS_4, DIRECTIONS_8 } from '../types';
+import { trimTransparent, compositeFrame, renderFullSheet } from '../compositing';
+import { ColorShiftCache } from '../colorShift';
+import { getDirectionRow } from '../state';
 import { ImportFrameModal } from './ImportFrameModal';
 
 interface AssetSplitterProps {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
+  cache: ColorShiftCache;
 }
 
 const ZOOM_STEPS = [0.25, 0.5, 1, 2, 4, 8, 16, 32];
@@ -195,7 +199,7 @@ function extractThroughMask(
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AssetSplitter({ state, dispatch }: AssetSplitterProps) {
+export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
   const { splitter } = state;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -209,6 +213,10 @@ export function AssetSplitter({ state, dispatch }: AssetSplitterProps) {
   const [cursor, setCursor] = useState('crosshair');
   // Canvas pending "Add as Layer" — shows the frame picker modal
   const [importCanvas, setImportCanvas] = useState<HTMLCanvasElement | null>(null);
+  // "Load from Layer" dropdown + frame picker
+  const [showLayerMenu, setShowLayerMenu] = useState(false);
+  const layerMenuRef = useRef<HTMLDivElement>(null);
+  const [framePickerLayerId, setFramePickerLayerId] = useState<string | null>(null);
 
   const liveMaskRef = useRef<HTMLCanvasElement | null>(null);
   const dragRef = useRef<DragState>({ kind: 'none' });
@@ -613,6 +621,63 @@ export function AssetSplitter({ state, dispatch }: AssetSplitterProps) {
     commitMask(mask);
   }
 
+  // ── Load from Layer ────────────────────────────────────────────────────────
+
+  /** Load a layer's full sheet (with HSL applied) into the splitter. */
+  function loadLayerSheet(layerId: string) {
+    const layer = state.layers.find(l => l.id === layerId);
+    if (!layer?.image) return;
+    const canvas = renderFullSheet([layer], state.config, cache);
+    loadCanvasIntoSplitter(canvas, `${layer.name} (sheet)`);
+    setShowLayerMenu(false);
+  }
+
+  /** Load a specific frame of a layer into the splitter. */
+  function loadLayerFrame(layerId: string, dirRow: number, frameIdx: number) {
+    const layer = state.layers.find(l => l.id === layerId);
+    if (!layer?.image) return;
+    const dirs = state.config.directions === 4 ? DIRECTIONS_4 : DIRECTIONS_8;
+    const dirName = dirs[dirRow] ?? `dir${dirRow}`;
+    const cv = document.createElement('canvas');
+    cv.width = state.config.frameWidth;
+    cv.height = state.config.frameHeight;
+    compositeFrame(cv, [layer], state.config, dirRow, frameIdx, cache);
+    loadCanvasIntoSplitter(cv, `${layer.name} (${dirName} #${frameIdx + 1})`);
+    setShowLayerMenu(false);
+    setFramePickerLayerId(null);
+  }
+
+  /** Common helper: convert a canvas to an HTMLImageElement and load it into the splitter. */
+  function loadCanvasIntoSplitter(canvas: HTMLCanvasElement, name: string) {
+    canvas.toBlob(blob => {
+      if (!blob) return;
+      const objectUrl = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        if (splitter.objectUrl) URL.revokeObjectURL(splitter.objectUrl);
+        maskOutlineRef.current = null;
+        liveMaskRef.current = null;
+        dispatch({ type: 'SET_SPLITTER', updates: { image: img, objectUrl, selectionMask: null, selectionBounds: null, extractedCanvas: null } });
+        setExtractName(name);
+      };
+      img.src = objectUrl;
+    }, 'image/png');
+  }
+
+  // Close layer menu when clicking outside
+  useEffect(() => {
+    if (!showLayerMenu) return;
+    function onClickOutside(e: MouseEvent) {
+      if (layerMenuRef.current && !layerMenuRef.current.contains(e.target as Node)) {
+        setShowLayerMenu(false);
+      }
+    }
+    document.addEventListener('pointerdown', onClickOutside, true);
+    return () => document.removeEventListener('pointerdown', onClickOutside, true);
+  }, [showLayerMenu]);
+
+  const layersWithImages = state.layers.filter(l => l.image);
+
   const hasSelection = !!(splitter.selectionMask && splitter.selectionBounds);
   const zoomIdx = ZOOM_STEPS.indexOf(zoom);
 
@@ -629,6 +694,47 @@ export function AssetSplitter({ state, dispatch }: AssetSplitterProps) {
         >
           Load Image
         </button>
+
+        {/* Load from Layer dropdown */}
+        {layersWithImages.length > 0 && (
+          <div className="relative" ref={layerMenuRef}>
+            <button
+              className="text-xs bg-teal-700 hover:bg-teal-600 text-white px-2 py-1 rounded"
+              onClick={() => setShowLayerMenu(!showLayerMenu)}
+              title="Load a composer layer into the splitter"
+            >
+              Load from Layer ▾
+            </button>
+            {showLayerMenu && (
+              <div className="absolute top-full left-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50 min-w-[220px] max-h-80 overflow-y-auto">
+                {layersWithImages.map(layer => (
+                  <div key={layer.id} className="border-b border-gray-700 last:border-b-0">
+                    <div className="px-3 py-1.5 text-xs text-gray-300 font-medium truncate bg-gray-800/80">
+                      {layer.name}
+                      <span className="text-gray-500 ml-1">({layer.type})</span>
+                    </div>
+                    <div className="flex gap-1 px-3 pb-2">
+                      <button
+                        onClick={() => loadLayerSheet(layer.id)}
+                        className="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-1 rounded"
+                        title="Load full sprite sheet into splitter"
+                      >
+                        Full Sheet
+                      </button>
+                      <button
+                        onClick={() => { setFramePickerLayerId(layer.id); setShowLayerMenu(false); }}
+                        className="flex-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-1 rounded"
+                        title="Pick a specific frame to load into splitter"
+                      >
+                        Pick Frame…
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {splitter.image && (
           <>
@@ -881,6 +987,167 @@ export function AssetSplitter({ state, dispatch }: AssetSplitterProps) {
         onClose={() => setImportCanvas(null)}
       />
     )}
+
+    {/* Layer frame picker — shown when user clicks "Pick Frame…" in Load from Layer */}
+    {framePickerLayerId && (() => {
+      const pickerLayer = state.layers.find(l => l.id === framePickerLayerId);
+      if (!pickerLayer?.image) return null;
+      return (
+        <LayerFramePickerModal
+          layer={pickerLayer}
+          config={state.config}
+          cache={cache}
+          onPick={(dirRow, frameIdx) => loadLayerFrame(framePickerLayerId, dirRow, frameIdx)}
+          onClose={() => setFramePickerLayerId(null)}
+        />
+      );
+    })()}
     </>
+  );
+}
+
+// ─── Layer Frame Picker Modal ─────────────────────────────────────────────────
+
+interface LayerFramePickerModalProps {
+  layer: import('../types').Layer;
+  config: import('../types').ProjectConfig;
+  cache: ColorShiftCache;
+  onPick: (dirRow: number, frameIdx: number) => void;
+  onClose: () => void;
+}
+
+function LayerFramePickerModal({ layer, config, cache, onPick, onClose }: LayerFramePickerModalProps) {
+  const { directions, framesPerDirection, frameWidth, frameHeight } = config;
+  const dirLabels = directions === 4 ? DIRECTIONS_4 : DIRECTIONS_8;
+
+  const CELL_SIZE = Math.max(24, Math.min(48, Math.floor(400 / framesPerDirection)));
+  // Render each frame thumbnail at a scale that fits CELL_SIZE
+  const thumbScale = Math.min(1, (CELL_SIZE - 4) / Math.max(frameWidth, frameHeight));
+  const thumbW = Math.round(frameWidth * thumbScale);
+  const thumbH = Math.round(frameHeight * thumbScale);
+
+  const [hoveredCell, setHoveredCell] = useState<{ dir: number; frame: number } | null>(null);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl flex flex-col gap-4 p-5" style={{ maxWidth: 600, width: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-bold text-gray-200">
+            Pick Frame from "{layer.name}"
+          </span>
+          <button onClick={onClose} className="text-gray-500 hover:text-white text-lg leading-none">✕</button>
+        </div>
+
+        <p className="text-xs text-gray-400">
+          Click a frame to load it into the Asset Splitter.
+          {hoveredCell && (
+            <span className="text-gray-300 ml-2">
+              {dirLabels[hoveredCell.dir]} / frame {hoveredCell.frame + 1}
+            </span>
+          )}
+        </p>
+
+        {/* Frame grid */}
+        <div className="overflow-auto">
+          {/* Column header — frame numbers */}
+          <div className="flex gap-0 mb-0.5" style={{ marginLeft: 56 }}>
+            {Array.from({ length: framesPerDirection }, (_, f) => (
+              <div
+                key={f}
+                className="text-gray-600 text-center flex-shrink-0"
+                style={{ width: CELL_SIZE, fontSize: 9 }}
+              >
+                {f + 1}
+              </div>
+            ))}
+          </div>
+
+          {/* Rows */}
+          <div className="flex flex-col gap-0">
+            {Array.from({ length: directions }, (_, d) => (
+              <div key={d} className="flex items-center gap-0">
+                {/* Direction label */}
+                <span
+                  className="text-gray-500 text-right flex-shrink-0 pr-1 capitalize"
+                  style={{ width: 56, fontSize: 9 }}
+                >
+                  {dirLabels[d]}
+                </span>
+
+                {Array.from({ length: framesPerDirection }, (_, f) => (
+                  <button
+                    key={f}
+                    onClick={() => onPick(d, f)}
+                    onMouseEnter={() => setHoveredCell({ dir: d, frame: f })}
+                    onMouseLeave={() => setHoveredCell(null)}
+                    className="flex-shrink-0 border border-transparent hover:border-indigo-400 rounded-sm transition-colors relative"
+                    style={{
+                      width: CELL_SIZE,
+                      height: CELL_SIZE,
+                      background: 'repeating-conic-gradient(#1a1a2e 0% 25%, #16213e 0% 50%) 0 0 / 6px 6px',
+                    }}
+                    title={`${dirLabels[d]} / frame ${f + 1}`}
+                  >
+                    <FrameThumb
+                      layer={layer}
+                      config={config}
+                      cache={cache}
+                      dirRow={d}
+                      frameIdx={f}
+                      thumbW={thumbW}
+                      thumbH={thumbH}
+                    />
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end">
+          <button onClick={onClose} className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Renders a single frame thumbnail for the picker grid. */
+function FrameThumb({ layer, config, cache, dirRow, frameIdx, thumbW, thumbH }: {
+  layer: import('../types').Layer;
+  config: import('../types').ProjectConfig;
+  cache: ColorShiftCache;
+  dirRow: number;
+  frameIdx: number;
+  thumbW: number;
+  thumbH: number;
+}) {
+  const ref = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const cv = ref.current;
+    if (!cv) return;
+    const src = document.createElement('canvas');
+    src.width = config.frameWidth;
+    src.height = config.frameHeight;
+    compositeFrame(src, [layer], config, dirRow, frameIdx, cache);
+    cv.width = thumbW;
+    cv.height = thumbH;
+    const ctx = cv.getContext('2d')!;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(src, 0, 0, thumbW, thumbH);
+  }, [layer, config, cache, dirRow, frameIdx, thumbW, thumbH]);
+
+  return (
+    <canvas
+      ref={ref}
+      className="block mx-auto"
+      style={{ imageRendering: 'pixelated', width: thumbW, height: thumbH }}
+    />
   );
 }

@@ -139,6 +139,53 @@ export async function saveProject(state: AppState, filename = 'project.spritebat
   saveAs(zipBlob, filename);
 }
 
+/**
+ * Save only the asset library (no layers or UI state) as a .spritebat file.
+ */
+export async function saveLibrary(library: LibraryAsset[], config: ProjectConfig, filename = 'library.spritebat'): Promise<void> {
+  const zip = new JSZip();
+  const libraryFolder = zip.folder('library')!;
+  const savedLibrary: SavedLibraryAsset[] = [];
+
+  for (const asset of library) {
+    savedLibrary.push({
+      id:        asset.id,
+      name:      asset.name,
+      tags:      asset.tags,
+      width:     asset.width,
+      height:    asset.height,
+      createdAt: asset.createdAt,
+    });
+
+    const response = await fetch(asset.objectUrl);
+    const blob = await response.blob();
+    libraryFolder.file(`${asset.id}.png`, blob);
+  }
+
+  const projectFile: ProjectFile = {
+    version: 1,
+    config,
+    layers: [],
+    ui: {
+      selectedLayerId: null,
+      previewDirection: 'down',
+      previewFrame: 0,
+      previewMode: 'forward',
+      previewFps: 8,
+      previewZoom: 4,
+      canvasZoom: 2,
+      sheetZoom: 1,
+      activeTab: 'library',
+    },
+    library: savedLibrary,
+  };
+
+  zip.file('project.json', JSON.stringify(projectFile, null, 2));
+
+  const zipBlob = await zip.generateAsync({ type: 'blob' });
+  saveAs(zipBlob, filename);
+}
+
 // ─── Load ─────────────────────────────────────────────────────────────────────
 
 export interface LoadedProject {

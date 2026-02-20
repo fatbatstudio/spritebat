@@ -310,7 +310,7 @@ function App() {
           </>
         ) : state.activeTab === 'splitter' ? (
           <div className="flex-1 overflow-hidden">
-            <AssetSplitter state={state} dispatch={typedDispatch} />
+            <AssetSplitter state={state} dispatch={typedDispatch} cache={globalCache} />
           </div>
         ) : (
           /* Library tab */
@@ -322,7 +322,7 @@ function App() {
 
       {/* ── Layer properties bar (only in composer tab) ── */}
       {state.activeTab === 'composer' && (
-        <div className="h-16 flex-shrink-0 bg-gray-900 border-t border-gray-700 overflow-hidden">
+        <div className="flex-shrink-0 bg-gray-900 border-t border-gray-700">
           <LayerProperties layer={selectedLayer} config={state.config} dispatch={typedDispatch} cache={globalCache} frameOffsetMode={state.frameOffsetMode} />
         </div>
       )}

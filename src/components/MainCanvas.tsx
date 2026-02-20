@@ -309,24 +309,24 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
       {/* Zoom controls */}
       <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-800 w-full flex-wrap">
         <span className="text-xs text-gray-400">Canvas:</span>
-        {[1, 2, 4, 8].map(z => (
+        {[0.25, 0.5, 1, 2, 4, 8].map(z => (
           <button
             key={z}
             onClick={() => dispatch({ type: 'SET_CANVAS_ZOOM', zoom: z })}
             className={`text-xs px-2 py-0.5 rounded ${canvasZoom === z ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
           >
-            {z}x
+            {z < 1 ? `1/${1/z}` : `${z}x`}
           </button>
         ))}
         <div className="w-px h-4 bg-gray-700" />
         <span className="text-xs text-gray-400">Sheets:</span>
-        {[1, 2, 4, 8].map(z => (
+        {[0.25, 0.5, 1, 2, 4, 8].map(z => (
           <button
             key={z}
             onClick={() => dispatch({ type: 'SET_SHEET_ZOOM', zoom: z })}
             className={`text-xs px-2 py-0.5 rounded ${sheetZoom === z ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
           >
-            {z}x
+            {z < 1 ? `1/${1/z}` : `${z}x`}
           </button>
         ))}
         <span className="text-xs text-gray-600 ml-1">
@@ -356,6 +356,7 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
                 width: displaySize,
                 height: displayHeight,
                 cursor: selectedLayer ? 'crosshair' : 'default',
+                imageRendering: canvasZoom >= 1 ? 'pixelated' : 'auto',
               }}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}

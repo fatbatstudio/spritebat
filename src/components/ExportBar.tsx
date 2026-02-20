@@ -282,17 +282,17 @@ export function ExportBar({ state, cache }: ExportBarProps) {
   const hasLayers = layers.some(l => l.visible && l.image);
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 bg-gray-900 border-t border-gray-700 flex-shrink-0">
+    <div className="flex items-center gap-x-2 gap-y-1 px-4 py-2 bg-gray-900 border-t border-gray-700 flex-shrink-0 flex-wrap">
       <span className="text-xs text-gray-500 uppercase tracking-wider mr-1">Export:</span>
 
       {/* Scale selector */}
-      <div className="flex items-center gap-1 mr-2">
+      <div className="flex items-center gap-1">
         <span className="text-xs text-gray-500">Scale:</span>
         {SCALE_OPTIONS.map(s => (
           <button
             key={s}
             onClick={() => setExportScale(s)}
-            className={`text-xs px-2 py-1 rounded transition-colors ${
+            className={`text-xs px-1.5 py-1 rounded transition-colors ${
               exportScale === s
                 ? 'bg-indigo-600 text-white'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
@@ -308,48 +308,46 @@ export function ExportBar({ state, cache }: ExportBarProps) {
       <button
         onClick={exportFullSheet}
         disabled={!hasLayers || !!exporting}
-        className="text-xs bg-indigo-700 hover:bg-indigo-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-1"
+        className="text-xs bg-indigo-700 hover:bg-indigo-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-2 py-1.5 rounded transition-colors flex items-center gap-1"
         title="Export full sprite sheet as PNG"
       >
-        {exporting === 'sheet' ? '⏳' : '📄'} Full Sheet
+        {exporting === 'sheet' ? '⏳' : '📄'} Sheet
       </button>
 
       <button
         onClick={exportCurrentDirection}
         disabled={!hasLayers || !!exporting}
-        className="text-xs bg-indigo-700 hover:bg-indigo-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-1"
+        className="text-xs bg-indigo-700 hover:bg-indigo-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-2 py-1.5 rounded transition-colors flex items-center gap-1"
         title={`Export all frames for current direction (${previewDirection}) as ZIP`}
       >
-        {exporting === 'dir' ? '⏳' : '🎞'} Direction ZIP
+        {exporting === 'dir' ? '⏳' : '🎞'} Dir ZIP
       </button>
 
       <button
         onClick={exportAllFrames}
         disabled={!hasLayers || !!exporting}
-        className="text-xs bg-indigo-700 hover:bg-indigo-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-1"
+        className="text-xs bg-indigo-700 hover:bg-indigo-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-2 py-1.5 rounded transition-colors flex items-center gap-1"
         title="Export all frames as individual PNGs in a ZIP"
       >
-        {exporting === 'frames' ? '⏳' : '📦'} All Frames ZIP
+        {exporting === 'frames' ? '⏳' : '📦'} All ZIP
       </button>
 
       <button
         onClick={exportCurrentFrame}
         disabled={!hasLayers || !!exporting}
-        className="text-xs bg-green-700 hover:bg-green-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-1"
+        className="text-xs bg-green-700 hover:bg-green-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-2 py-1.5 rounded transition-colors flex items-center gap-1"
         title="Export just the current frame as PNG"
       >
-        {exporting === 'frame' ? '⏳' : '🖼'} Current Frame
+        {exporting === 'frame' ? '⏳' : '🖼'} Frame
       </button>
 
       <div className="w-px h-4 bg-gray-700" />
 
-      {/* Single-layer export — only relevant when a layer is selected */}
-      <span className="text-xs text-gray-500">Layer:</span>
-
+      {/* Single-layer export */}
       <button
         onClick={exportLayerSheet}
         disabled={!selectedLayerReady || !!exporting}
-        className="text-xs bg-teal-700 hover:bg-teal-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-1"
+        className="text-xs bg-teal-700 hover:bg-teal-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-2 py-1.5 rounded transition-colors flex items-center gap-1"
         title={selectedLayer ? `Export "${selectedLayer.name}" full sheet as PNG` : 'Select a layer to export'}
       >
         {exporting === 'layerSheet' ? '⏳' : '📄'} Layer Sheet
@@ -358,7 +356,7 @@ export function ExportBar({ state, cache }: ExportBarProps) {
       <button
         onClick={exportLayerFrame}
         disabled={!selectedLayerReady || !!exporting}
-        className="text-xs bg-teal-700 hover:bg-teal-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-1"
+        className="text-xs bg-teal-700 hover:bg-teal-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-2 py-1.5 rounded transition-colors flex items-center gap-1"
         title={selectedLayer ? `Export current frame of "${selectedLayer.name}" as PNG` : 'Select a layer to export'}
       >
         {exporting === 'layerFrame' ? '⏳' : '🖼'} Layer Frame
@@ -367,24 +365,22 @@ export function ExportBar({ state, cache }: ExportBarProps) {
       <div className="w-px h-4 bg-gray-700" />
 
       {/* GIF export */}
-      <span className="text-xs text-gray-500">GIF:</span>
-
       <button
         onClick={exportGifDirection}
         disabled={!hasLayers || !!exporting}
-        className="text-xs bg-amber-700 hover:bg-amber-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-1"
+        className="text-xs bg-amber-700 hover:bg-amber-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-2 py-1.5 rounded transition-colors flex items-center gap-1"
         title={`Export ${previewDirection} animation as GIF at ${state.previewFps} FPS`}
       >
-        {exporting === 'gifDir' ? '⏳' : '🎞'} Direction GIF
+        {exporting === 'gifDir' ? '⏳' : '🎞'} Dir GIF
       </button>
 
       <button
         onClick={exportGifAllDirections}
         disabled={!hasLayers || !!exporting}
-        className="text-xs bg-amber-700 hover:bg-amber-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-3 py-1.5 rounded transition-colors flex items-center gap-1"
+        className="text-xs bg-amber-700 hover:bg-amber-600 disabled:bg-gray-700 disabled:text-gray-500 text-white px-2 py-1.5 rounded transition-colors flex items-center gap-1"
         title={`Export all ${config.directions} directions as separate GIFs in a ZIP at ${state.previewFps} FPS`}
       >
-        {exporting === 'gifAll' ? '⏳' : '📦'} All Dirs GIF
+        {exporting === 'gifAll' ? '⏳' : '📦'} All GIFs
       </button>
 
       {!hasLayers && (

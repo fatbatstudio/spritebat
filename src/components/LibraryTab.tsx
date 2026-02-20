@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import type { AppAction, AppState, LibraryAsset } from '../types';
 import { ImportFrameModal } from './ImportFrameModal';
-import { loadProject } from '../project';
+import { loadProject, saveLibrary } from '../project';
 
 interface LibraryTabProps {
   state: AppState;
@@ -18,6 +18,7 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const projectInputRef = useRef<HTMLInputElement>(null);
   const [importingProject, setImportingProject] = useState(false);
+  const [savingLibrary, setSavingLibrary] = useState(false);
   // Asset pending import — shows the frame picker modal
   const [importingAsset, setImportingAsset] = useState<LibraryAsset | null>(null);
 
@@ -151,6 +152,17 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
     }
   }
 
+  async function handleSaveLibrary() {
+    setSavingLibrary(true);
+    try {
+      await saveLibrary(library, config);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to save library.');
+    } finally {
+      setSavingLibrary(false);
+    }
+  }
+
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
@@ -179,6 +191,15 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
           title="Import library assets from a .spritebat project file"
         >
           {importingProject ? '⏳' : '📦'} Import from .spritebat
+        </button>
+
+        <button
+          onClick={handleSaveLibrary}
+          disabled={savingLibrary || library.length === 0}
+          className="text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-300 px-2.5 py-1 rounded flex items-center gap-1"
+          title="Save only the asset library as a .spritebat file"
+        >
+          {savingLibrary ? '⏳' : '💾'} Save Library .spritebat
         </button>
 
         {/* Hidden file inputs */}
