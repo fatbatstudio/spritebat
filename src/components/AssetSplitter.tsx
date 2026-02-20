@@ -357,9 +357,15 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
     redraw();
   }, [splitter.image, zoom, redraw]);
 
-  // Fit zoom on new image — setState here is intentional: syncing zoom to a newly-loaded image
+  // Fit zoom on first image load only — subsequent loads retain the current zoom level
+  const hadImageRef = useRef(false);
   useEffect(() => {
-    if (!splitter.image) return;
+    if (!splitter.image) {
+      hadImageRef.current = false;
+      return;
+    }
+    if (hadImageRef.current) return; // keep current zoom on subsequent loads
+    hadImageRef.current = true;
     const container = containerRef.current;
     const availW = container ? container.clientWidth - 32 : 680;
     const availH = container ? container.clientHeight - 32 : 480;
@@ -621,6 +627,16 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
     commitMask(mask);
   }
 
+  function handleUnload() {
+    if (!window.confirm('Unload image? Any selection will be lost.')) return;
+    if (splitter.objectUrl) URL.revokeObjectURL(splitter.objectUrl);
+    maskOutlineRef.current = null;
+    liveMaskRef.current = null;
+    hadImageRef.current = false;
+    dispatch({ type: 'SET_SPLITTER', updates: { image: null, objectUrl: null, selectionMask: null, selectionBounds: null, extractedCanvas: null } });
+    setExtractName('asset');
+  }
+
   // ── Load from Layer ────────────────────────────────────────────────────────
 
   /** Load a layer's full sheet (with HSL applied) into the splitter. */
@@ -738,6 +754,14 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
 
         {splitter.image && (
           <>
+            <button
+              className="text-xs bg-gray-700 hover:bg-red-900 hover:text-red-300 text-gray-400 px-2 py-1 rounded"
+              onClick={handleUnload}
+              title="Unload image and return to empty state"
+            >
+              ✕ Unload
+            </button>
+
             {/* Tool selector */}
             <div className="flex gap-1 bg-gray-800 p-0.5 rounded">
               <button
