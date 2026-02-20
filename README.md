@@ -2,6 +2,8 @@
 
 Browser-based sprite sheet compositor for layering, tinting, and combining 2D game animation assets into unified sprite sheets.
 
+**🔗 [spritebat.fatbat.studio](https://spritebat.fatbat.studio/)**
+
 **By [FATBAT Studio](https://eidolware.com/about/)** · [Bluesky](https://bsky.app/profile/fatbat.studio) · [Ko-fi](https://ko-fi.com/fatbatstudio)
 
 ## Features
