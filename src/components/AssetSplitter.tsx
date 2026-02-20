@@ -3,7 +3,7 @@ import type { AppState, AppAction, LibraryAsset, SplitterTool, SelectionMode } f
 import { DIRECTIONS_4, DIRECTIONS_8 } from '../types';
 import { trimTransparent, compositeFrame, renderFullSheet } from '../compositing';
 import { ColorShiftCache } from '../colorShift';
-import { getDirectionRow } from '../state';
+
 import { ImportFrameModal } from './ImportFrameModal';
 
 interface AssetSplitterProps {

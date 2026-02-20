@@ -222,7 +222,8 @@ export function ExportBar({ state, cache }: ExportBarProps) {
     }
 
     gif.finish();
-    return new Blob([gif.bytes()], { type: 'image/gif' });
+    const bytes = gif.bytes();
+    return new Blob([bytes.slice().buffer as ArrayBuffer], { type: 'image/gif' });
   }
 
   async function exportGifDirection() {

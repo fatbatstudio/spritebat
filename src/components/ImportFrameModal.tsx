@@ -14,7 +14,7 @@
  *   onClose      – called when the modal is dismissed without importing
  */
 
-import React, { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import type { Layer, LayerType, ProjectConfig } from '../types';
 import { DIRECTIONS_4, DIRECTIONS_8 } from '../types';
 import { tileToSheet } from '../compositing';

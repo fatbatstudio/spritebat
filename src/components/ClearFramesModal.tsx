@@ -12,7 +12,7 @@
  *   onClose – cancel
  */
 
-import React, { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import type { Layer, ProjectConfig } from '../types';
 import { DIRECTIONS_4, DIRECTIONS_8 } from '../types';
 import { frameRect, flatIndex } from '../types';
