@@ -171,6 +171,15 @@ function App() {
           >
             ? About
           </button>
+          <a
+            href="https://ko-fi.com/fatbatstudio"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs bg-[#FF5E5B] hover:bg-[#e04e4b] text-white px-2 py-1 rounded transition-colors"
+            title="Support on Ko-fi"
+          >
+            ☕ Ko-fi
+          </a>
         </div>
 
         {/* Tab switcher — absolutely centred so it's always in the middle of the bar */}
@@ -361,16 +370,24 @@ function App() {
               building modular character animations from separate body-part assets.
             </p>
 
+            <p className="text-sm text-gray-400 leading-relaxed">
+              SpriteBat is free to use! If you find it helpful, consider
+              {' '}<a href="https://ko-fi.com/fatbatstudio" target="_blank" rel="noopener noreferrer" className="text-[#FF5E5B] hover:text-[#ff7e7b] transition-colors">buying me a coffee on Ko-fi</a> to
+              support continued development.
+            </p>
+
             <div className="flex flex-col gap-2 text-xs text-gray-400">
               <span className="text-gray-500 font-bold uppercase tracking-wider text-xs">Features</span>
               <ul className="list-disc list-inside space-y-1">
-                <li><span className="text-gray-300">Composer</span> — Stack layers with per-layer HSL shift, opacity, offsets, and per-frame nudge. Drag to reposition, merge layers down, undo/redo everything.</li>
-                <li><span className="text-gray-300">Asset Splitter</span> — Load a reference image, box/lasso select a region (Shift to add, Alt to subtract), then extract it as a trimmed PNG for the library or directly as a layer.</li>
-                <li><span className="text-gray-300">Library</span> — Store extracted assets for reuse. Duplicate, flip H/V, import into specific frame cells, or add as a full layer.</li>
+                <li><span className="text-gray-300">Composer</span> — Stack layers with per-layer HSL color shift, opacity, offsets, and per-frame position nudge. Drag to reposition on the canvas, merge layers down, undo/redo all actions. Each layer can have its own input grid layout.</li>
+                <li><span className="text-gray-300">Asset Splitter</span> — Load a reference image or import directly from a composer layer (full sheet or a specific frame). Box/lasso select regions (Shift to add, Alt to subtract), resize handles for fine-tuning, then extract as a trimmed PNG to the library or as a new layer.</li>
+                <li><span className="text-gray-300">Library</span> — Store extracted assets for reuse. Duplicate, flip H/V, import into specific frame cells, or add as a full layer. Save/load library assets as standalone .spritebat files, or import assets from another project.</li>
                 <li><span className="text-gray-300">Tile to Sheet</span> — Stamp a single-frame asset across chosen directions and frames to build a full sprite sheet in one click.</li>
                 <li><span className="text-gray-300">Clear Frames</span> — Erase specific cells from a layer so you can replace them with new content.</li>
-                <li><span className="text-gray-300">Configurable layouts</span> — Set frame size, direction count (4 or 8), frames per direction, and separate input/export grid layouts.</li>
-                <li><span className="text-gray-300">Export</span> — Download the composited sheet as PNG, export individual frames as ZIP, or export animated GIFs per direction (uses the preview FPS). Scale 1–4× for all formats.</li>
+                <li><span className="text-gray-300">Animated Preview</span> — Preview animations per direction with forward, reverse, and ping-pong playback modes. Click frame indicators to jump to any frame.</li>
+                <li><span className="text-gray-300">Configurable layouts</span> — Set frame size, direction count (4 or 8), frames per direction, and separate input/export grid layouts. Click the sheet preview to jump to any frame.</li>
+                <li><span className="text-gray-300">Export</span> — Download the composited sheet as PNG, individual frames as ZIP, or animated GIFs per direction with forward/reverse/ping-pong support. Export the selected layer only as a sheet or single frame. Scale 1–4× for all formats.</li>
+                <li><span className="text-gray-300">Projects</span> — Save and load .spritebat project files that preserve all layers, library assets, and UI state. Keyboard shortcuts for undo (Ctrl+Z) and redo (Ctrl+Y).</li>
               </ul>
             </div>
 
@@ -388,6 +405,17 @@ function App() {
                 >
                   <svg width="16" height="16" viewBox="0 0 600 530" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                     <path d="M135.72 44.03C202.216 93.951 273.74 195.17 300 249.49c26.262-54.316 97.782-155.54 164.28-205.46C512.26 8.009 590-19.862 590 68.825c0 17.712-10.155 148.79-16.111 170.07-20.703 73.984-96.144 92.854-163.25 81.433 117.3 19.964 147.14 86.092 82.697 152.22-122.39 125.59-175.91-31.511-189.63-71.766-2.514-7.38-3.69-10.832-3.708-7.896-.017-2.935-1.193.516-3.707 7.896-13.714 40.255-67.233 197.36-189.63 71.766-64.444-66.128-34.605-132.256 82.697-152.22-67.108 11.421-142.55-7.449-163.25-81.433C20.15 217.613 10 86.536 10 68.824c0-88.687 77.742-60.816 125.72-24.795z" />
+                  </svg>
+                </a>
+                <a
+                  href="https://ko-fi.com/fatbatstudio"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-500 hover:text-[#FF5E5B] transition-colors"
+                  title="Support on Ko-fi"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z" />
                   </svg>
                 </a>
               </div>
