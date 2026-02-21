@@ -302,7 +302,7 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
   const layoutOk = layer.inputLayout.cols * layer.inputLayout.rows >= total;
 
   return (
-    <div className="flex items-start gap-x-3 gap-y-1 px-4 py-1.5 h-full flex-wrap content-center">
+    <div className={`flex items-start gap-x-3 gap-y-1 px-4 py-1.5 flex-wrap content-center ${mobile ? 'pb-3' : 'h-full'}`}>
       {/* Name */}
       <div className="flex flex-col gap-0.5">
         <label className="text-xs text-gray-400">Name</label>

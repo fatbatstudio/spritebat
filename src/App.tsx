@@ -137,6 +137,7 @@ function App() {
 
   // ── About dialog ───────────────────────────────────────────────────────────
   const [showAbout, setShowAbout] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
 
   // ── Tutorial / example project dialog ────────────────────────────────────
   const [showTutorial, setShowTutorial] = useState(false);
@@ -638,6 +639,13 @@ function App() {
                 <img src="/bat-emoji.png" alt="🦇" className="w-6 h-6" style={{ imageRendering: 'auto' }} />
                 <span className="font-bold text-indigo-400 text-base tracking-wide">SpriteBat</span>
                 <span className="text-gray-500 text-xs">v1.02</span>
+                <button
+                  onClick={() => setShowChangelog(true)}
+                  className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-0.5 rounded transition-colors"
+                  title="View changelog"
+                >
+                  What's New
+                </button>
               </div>
               <button onClick={() => setShowAbout(false)} className="text-gray-500 hover:text-white text-lg leading-none">✕</button>
             </div>
@@ -769,6 +777,80 @@ function App() {
                 className="text-xs bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-4 py-1.5 rounded transition-colors flex items-center gap-1"
               >
                 {tutorialBusy ? '⏳ Loading…' : '📂 Load Example Project'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Changelog Modal ── */}
+      {showChangelog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={e => e.target === e.currentTarget && setShowChangelog(false)}
+        >
+          <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ maxWidth: 560, width: '90vw' }}>
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-indigo-400 text-base tracking-wide">What's New</span>
+              <button onClick={() => setShowChangelog(false)} className="text-gray-500 hover:text-white text-lg leading-none">✕</button>
+            </div>
+
+            {/* v1.02 */}
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-bold text-gray-200">v1.02 <span className="text-gray-500 font-normal">— Feb 21, 2026</span></h3>
+              <ul className="list-disc list-inside text-xs text-gray-400 space-y-1 pl-1">
+                <li>Try Example button to load a bundled tutorial project</li>
+                <li>Library tag sidebar with counts and filters (All / Untagged / by tag)</li>
+                <li>Library drag-to-reorder and search by name + tags</li>
+                <li>Asset Splitter: load from composer layer, spacebar pan, extract with tags</li>
+                <li>HSL Adjust dialog with precise numeric inputs</li>
+                <li>PWA support: install as standalone app, full offline use</li>
+                <li>OpenGraph and Twitter Card meta tags for rich link previews</li>
+                <li>Mobile responsive UI with slide-over panels, collapsible bars, and touch targets</li>
+                <li>Two-row desktop header, scrollable About dialog, canvas touch support</li>
+              </ul>
+            </div>
+
+            <div className="border-t border-gray-800" />
+
+            {/* v1.01 */}
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-bold text-gray-200">v1.01 <span className="text-gray-500 font-normal">— Feb 20, 2026</span></h3>
+              <ul className="list-disc list-inside text-xs text-gray-400 space-y-1 pl-1">
+                <li>Save/load library as standalone .spritebat files</li>
+                <li>Export per-layer sheet and single frame</li>
+                <li>GIF export for directions (forward/reverse/ping-pong)</li>
+                <li>Asset Splitter with box/lasso selection and resize handles</li>
+                <li>Merge layers down, HSL color shift with caching</li>
+                <li>Per-frame position offsets with dedicated editing mode</li>
+                <li>Import into specific frame cells, clear specific cells</li>
+                <li>Tile to Sheet: stamp asset across directions/frames</li>
+                <li>Undo/redo for all layer and library actions (Ctrl+Z / Ctrl+Y)</li>
+              </ul>
+            </div>
+
+            <div className="border-t border-gray-800" />
+
+            {/* v1.0 */}
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-bold text-gray-200">v1.0 <span className="text-gray-500 font-normal">— Feb 19, 2026</span></h3>
+              <ul className="list-disc list-inside text-xs text-gray-400 space-y-1 pl-1">
+                <li>Initial release with multi-layer sprite sheet compositing</li>
+                <li>Layer system with types, visibility, opacity, and reordering</li>
+                <li>Animated preview with forward/reverse/ping-pong playback</li>
+                <li>Configurable frame size, directions, frames per direction, grid layouts</li>
+                <li>Export as PNG sheet or individual frames as ZIP</li>
+                <li>.spritebat project files for saving/loading full project state</li>
+                <li>Asset library for storing and organizing sprites</li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end pt-1 border-t border-gray-800">
+              <button
+                onClick={() => setShowChangelog(false)}
+                className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded"
+              >
+                Close
               </button>
             </div>
           </div>

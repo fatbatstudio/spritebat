@@ -51,6 +51,10 @@ Output goes to the `dist/` folder.
 - [gifenc](https://github.com/mattdesl/gifenc) for animated GIF export
 - [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) for offline support and installable PWA
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a full list of updates across all versions.
+
 ## Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
