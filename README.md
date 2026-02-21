@@ -23,6 +23,7 @@ Browser-based sprite sheet compositor for layering, tinting, and combining 2D ga
 - **Configurable Layouts** — Set frame size, direction count (4 or 8), frames per direction, and separate input/export grid layouts. Click the sheet preview to jump to any frame.
 - **Export** — Download the composited sheet as PNG, individual frames as ZIP, or animated GIFs per direction with forward/reverse/ping-pong support. Export the selected layer only as a sheet or single frame. Scale 1–4× for all formats.
 - **Projects** — Save and load .spritebat project files that preserve all layers, library assets, and UI state. Keyboard shortcuts for undo (Ctrl/Cmd+Z) and redo (Ctrl/Cmd+Y). Click "Try Example" to load a bundled demo project and explore features.
+- **Install & Offline** — Install SpriteBat as a standalone app from your browser and use it fully offline. Automatic update notifications when a new version is available.
 
 ## Getting Started
 
@@ -48,6 +49,7 @@ Output goes to the `dist/` folder.
 - [JSZip](https://stuk.github.io/jszip/) for .spritebat project files (ZIP-based format)
 - [file-saver](https://github.com/nicolo-ribaudo/FileSaver.js) for download triggers
 - [gifenc](https://github.com/mattdesl/gifenc) for animated GIF export
+- [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) for offline support and installable PWA
 
 ## Contributing
 

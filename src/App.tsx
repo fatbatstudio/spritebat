@@ -13,6 +13,7 @@ import { AnimatedPreview } from './components/AnimatedPreview';
 import { ProjectConfigModal } from './components/ProjectConfig';
 import { ExportBar } from './components/ExportBar';
 import { LibraryTab } from './components/LibraryTab';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 
 // Global color shift cache — persists across renders
 const globalCache = new ColorShiftCache();
@@ -47,6 +48,13 @@ function App() {
 
   // Typed dispatch so callers can still pass plain AppActions
   const typedDispatch = dispatch as React.Dispatch<UndoRedoAction>;
+
+  // ── PWA update prompt ─────────────────────────────────────────────────────
+  const {
+    needRefresh: [needRefresh],
+    updateServiceWorker,
+  } = useRegisterSW();
+  const [updateDismissed, setUpdateDismissed] = useState(false);
 
   // Persist config + UI prefs whenever they change
   useEffect(() => {
@@ -346,6 +354,26 @@ function App() {
         </div>
       </header>
 
+      {/* ── PWA update banner ── */}
+      {needRefresh && !updateDismissed && (
+        <div className="flex items-center justify-center gap-3 px-4 py-1.5 bg-indigo-900/80 border-b border-indigo-700 flex-shrink-0">
+          <span className="text-xs text-indigo-200">🔄 A new version of SpriteBat is available.</span>
+          <button
+            onClick={() => updateServiceWorker(true)}
+            className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-0.5 rounded transition-colors"
+          >
+            Refresh
+          </button>
+          <button
+            onClick={() => setUpdateDismissed(true)}
+            className="text-gray-400 hover:text-white text-sm leading-none transition-colors"
+            title="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* ── Main content area ── */}
       <div className="flex flex-1 overflow-hidden">
         {state.activeTab === 'composer' ? (
@@ -440,6 +468,7 @@ function App() {
                 <li><span className="text-gray-300">Configurable layouts</span> — Set frame size, direction count (4 or 8), frames per direction, and separate input/export grid layouts. Click the sheet preview to jump to any frame.</li>
                 <li><span className="text-gray-300">Export</span> — Download the composited sheet as PNG, individual frames as ZIP, or animated GIFs per direction with forward/reverse/ping-pong support. Export the selected layer only as a sheet or single frame. Scale 1–4× for all formats.</li>
                 <li><span className="text-gray-300">Projects</span> — Save and load .spritebat project files that preserve all layers, library assets, and UI state. Keyboard shortcuts for undo (Ctrl+Z) and redo (Ctrl+Y). Try the bundled example project to explore features.</li>
+                <li><span className="text-gray-300">Install & Offline</span> — Install SpriteBat as a standalone app from your browser and use it fully offline. Automatic update notifications when a new version is available.</li>
               </ul>
             </div>
 
