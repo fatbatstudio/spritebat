@@ -93,6 +93,10 @@ function App() {
   // ── About dialog ───────────────────────────────────────────────────────────
   const [showAbout, setShowAbout] = useState(false);
 
+  // ── Tutorial / example project dialog ────────────────────────────────────
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialBusy, setTutorialBusy] = useState(false);
+
   // ── Project save / load ────────────────────────────────────────────────────
   const [projectBusy, setProjectBusy] = useState<'saving' | 'loading' | null>(null);
   const [projectError, setProjectError] = useState<string | null>(null);
@@ -120,6 +124,38 @@ function App() {
     if (window.confirm('Close project? Any unsaved changes will be lost.')) {
       typedDispatch({ type: 'CLOSE_PROJECT' });
       globalCache.clear();
+    }
+  }
+
+  async function handleLoadTutorial() {
+    setTutorialBusy(true);
+    try {
+      const response = await fetch('/tutorial-character.spritebat');
+      if (!response.ok) throw new Error('Failed to fetch example project');
+      const blob = await response.blob();
+      const file = new File([blob], 'tutorial-character.spritebat');
+      const project = await loadProject(file);
+      typedDispatch({
+        type:             'LOAD_PROJECT',
+        config:           project.config,
+        layers:           project.layers,
+        selectedLayerId:  project.ui.selectedLayerId,
+        previewDirection: project.ui.previewDirection,
+        previewFrame:     project.ui.previewFrame,
+        previewMode:      project.ui.previewMode,
+        previewFps:       project.ui.previewFps,
+        previewZoom:      project.ui.previewZoom,
+        canvasZoom:       project.ui.canvasZoom,
+        sheetZoom:        project.ui.sheetZoom,
+        activeTab:        project.ui.activeTab,
+        library:          project.library,
+      });
+      globalCache.clear();
+      setShowTutorial(false);
+    } catch (e) {
+      setProjectError(e instanceof Error ? e.message : 'Failed to load example');
+    } finally {
+      setTutorialBusy(false);
     }
   }
 
@@ -162,7 +198,7 @@ function App() {
       <header className="relative flex items-center px-4 py-2 bg-gray-900 border-b border-gray-700 flex-shrink-0">
         <div className="flex items-center gap-3">
           <span className="font-bold text-indigo-400 text-sm tracking-wide flex items-center gap-1"><img src="/bat-emoji.png" alt="🦇" className="w-5 h-5" style={{ imageRendering: 'auto' }} /> SpriteBat</span>
-          <span className="text-gray-600 text-xs">v1.0</span>
+          <span className="text-gray-600 text-xs">v1.01</span>
           <a href="https://eidolware.com/about/" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">by FATBAT Studio</a>
           <button
             onClick={() => setShowAbout(true)}
@@ -180,6 +216,13 @@ function App() {
           >
             ☕ Ko-fi
           </a>
+          <button
+            onClick={() => setShowTutorial(true)}
+            className="text-xs bg-teal-700 hover:bg-teal-600 text-white px-2 py-1 rounded transition-colors"
+            title="Load an example project to explore SpriteBat"
+          >
+            🎮 Try Example
+          </button>
         </div>
 
         {/* Tab switcher — absolutely centred so it's always in the middle of the bar */}
@@ -359,7 +402,7 @@ function App() {
               <div className="flex items-center gap-2">
                 <img src="/bat-emoji.png" alt="🦇" className="w-6 h-6" style={{ imageRendering: 'auto' }} />
                 <span className="font-bold text-indigo-400 text-base tracking-wide">SpriteBat</span>
-                <span className="text-gray-500 text-xs">v1.0</span>
+                <span className="text-gray-500 text-xs">v1.01</span>
               </div>
               <button onClick={() => setShowAbout(false)} className="text-gray-500 hover:text-white text-lg leading-none">✕</button>
             </div>
@@ -389,7 +432,7 @@ function App() {
                 <li><span className="text-gray-300">Animated Preview</span> — Preview animations per direction with forward, reverse, and ping-pong playback modes. Click frame indicators to jump to any frame.</li>
                 <li><span className="text-gray-300">Configurable layouts</span> — Set frame size, direction count (4 or 8), frames per direction, and separate input/export grid layouts. Click the sheet preview to jump to any frame.</li>
                 <li><span className="text-gray-300">Export</span> — Download the composited sheet as PNG, individual frames as ZIP, or animated GIFs per direction with forward/reverse/ping-pong support. Export the selected layer only as a sheet or single frame. Scale 1–4× for all formats.</li>
-                <li><span className="text-gray-300">Projects</span> — Save and load .spritebat project files that preserve all layers, library assets, and UI state. Keyboard shortcuts for undo (Ctrl+Z) and redo (Ctrl+Y).</li>
+                <li><span className="text-gray-300">Projects</span> — Save and load .spritebat project files that preserve all layers, library assets, and UI state. Keyboard shortcuts for undo (Ctrl+Z) and redo (Ctrl+Y). Try the bundled example project to explore features.</li>
               </ul>
             </div>
 
@@ -435,6 +478,60 @@ function App() {
                 className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tutorial / Example Project Modal ── */}
+      {showTutorial && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={e => e.target === e.currentTarget && setShowTutorial(false)}
+        >
+          <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl flex flex-col gap-4 p-6" style={{ maxWidth: 480, width: '90vw' }}>
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-teal-400 text-base tracking-wide">🎮 Example Project</span>
+              <button onClick={() => setShowTutorial(false)} className="text-gray-500 hover:text-white text-lg leading-none">✕</button>
+            </div>
+
+            <p className="text-sm text-gray-300 leading-relaxed">
+              Load an example character project to explore SpriteBat's features. This project includes layered sprite sheets
+              for a modular character — try toggling layers, adjusting HSL colors, changing offsets, and exporting to see how
+              SpriteBat brings everything together.
+            </p>
+
+            <p className="text-sm text-gray-400 leading-relaxed">
+              The character in this example is based on a template by{' '}
+              <a
+                href="https://malibudarby.itch.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-teal-400 hover:text-teal-300 transition-colors"
+              >
+                Malibu Darby
+              </a>
+              . Check out their work for more amazing pixel art assets!
+            </p>
+
+            <div className="text-xs text-gray-500 bg-gray-800 rounded px-3 py-2">
+              ⚠ Loading the example will replace your current project. Save first if you have unsaved work.
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                onClick={() => setShowTutorial(false)}
+                className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLoadTutorial}
+                disabled={tutorialBusy}
+                className="text-xs bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white px-4 py-1.5 rounded transition-colors flex items-center gap-1"
+              >
+                {tutorialBusy ? '⏳ Loading…' : '📂 Load Example Project'}
               </button>
             </div>
           </div>
