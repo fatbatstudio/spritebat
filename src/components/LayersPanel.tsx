@@ -246,7 +246,7 @@ export function LayersPanel({ layers, selectedLayerId, config, dispatch, cache }
         accept="image/png,image/*"
         multiple
         className="hidden"
-        onChange={e => e.target.files && handleFiles(e.target.files)}
+        onChange={e => { if (e.target.files) { handleFiles(e.target.files); e.target.value = ''; } }}
       />
     </div>
   );
@@ -347,8 +347,8 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
         <input
           type="range" min={-180} max={180} step={1}
           value={layer.hsl.hue}
+          onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
           onChange={e => updateTransient({ hsl: { ...layer.hsl, hue: Number(e.target.value) } })}
-          onPointerUp={e => update({ hsl: { ...layer.hsl, hue: Number((e.target as HTMLInputElement).value) } })}
         />
       </div>
 
@@ -358,8 +358,8 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
         <input
           type="range" min={-100} max={100} step={1}
           value={layer.hsl.saturation}
+          onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
           onChange={e => updateTransient({ hsl: { ...layer.hsl, saturation: Number(e.target.value) } })}
-          onPointerUp={e => update({ hsl: { ...layer.hsl, saturation: Number((e.target as HTMLInputElement).value) } })}
         />
       </div>
 
@@ -369,8 +369,8 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
         <input
           type="range" min={-100} max={100} step={1}
           value={layer.hsl.lightness}
+          onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
           onChange={e => updateTransient({ hsl: { ...layer.hsl, lightness: Number(e.target.value) } })}
-          onPointerUp={e => update({ hsl: { ...layer.hsl, lightness: Number((e.target as HTMLInputElement).value) } })}
         />
       </div>
 
@@ -380,8 +380,8 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
         <input
           type="range" min={0} max={100} step={1}
           value={layer.opacity}
+          onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
           onChange={e => updateTransient({ opacity: Number(e.target.value) })}
-          onPointerUp={e => update({ opacity: Number((e.target as HTMLInputElement).value) })}
         />
       </div>
 
@@ -528,6 +528,8 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
           hsl={layer.hsl}
           opacity={layer.opacity}
           onUpdate={updates => update(updates)}
+          onTransientUpdate={updates => updateTransient(updates)}
+          onSnapshot={() => dispatch({ type: 'SNAPSHOT' })}
           onClose={() => setShowHslModal(false)}
         />
       )}
@@ -542,10 +544,12 @@ interface HslDialogProps {
   hsl: { hue: number; saturation: number; lightness: number };
   opacity: number;
   onUpdate: (updates: Partial<Layer>) => void;
+  onTransientUpdate: (updates: Partial<Layer>) => void;
+  onSnapshot: () => void;
   onClose: () => void;
 }
 
-function HslDialog({ hsl, opacity, onUpdate, onClose }: HslDialogProps) {
+function HslDialog({ hsl, opacity, onUpdate, onTransientUpdate, onSnapshot, onClose }: HslDialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -614,7 +618,8 @@ function HslDialog({ hsl, opacity, onUpdate, onClose }: HslDialogProps) {
             <input
               type="range" min={-180} max={180} step={1}
               value={hsl.hue}
-              onChange={e => onUpdate({ hsl: { ...hsl, hue: Number(e.target.value) } })}
+              onPointerDown={onSnapshot}
+              onChange={e => onTransientUpdate({ hsl: { ...hsl, hue: Number(e.target.value) } })}
               className="flex-1"
             />
             <NumericInput
@@ -633,7 +638,8 @@ function HslDialog({ hsl, opacity, onUpdate, onClose }: HslDialogProps) {
             <input
               type="range" min={-100} max={100} step={1}
               value={hsl.saturation}
-              onChange={e => onUpdate({ hsl: { ...hsl, saturation: Number(e.target.value) } })}
+              onPointerDown={onSnapshot}
+              onChange={e => onTransientUpdate({ hsl: { ...hsl, saturation: Number(e.target.value) } })}
               className="flex-1"
             />
             <NumericInput
@@ -652,7 +658,8 @@ function HslDialog({ hsl, opacity, onUpdate, onClose }: HslDialogProps) {
             <input
               type="range" min={-100} max={100} step={1}
               value={hsl.lightness}
-              onChange={e => onUpdate({ hsl: { ...hsl, lightness: Number(e.target.value) } })}
+              onPointerDown={onSnapshot}
+              onChange={e => onTransientUpdate({ hsl: { ...hsl, lightness: Number(e.target.value) } })}
               className="flex-1"
             />
             <NumericInput
@@ -671,7 +678,8 @@ function HslDialog({ hsl, opacity, onUpdate, onClose }: HslDialogProps) {
             <input
               type="range" min={0} max={100} step={1}
               value={opacity}
-              onChange={e => onUpdate({ opacity: Number(e.target.value) })}
+              onPointerDown={onSnapshot}
+              onChange={e => onTransientUpdate({ opacity: Number(e.target.value) })}
               className="flex-1"
             />
             <NumericInput

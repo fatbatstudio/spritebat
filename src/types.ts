@@ -66,6 +66,8 @@ export interface SplitterState {
    */
   selectionBounds: { x: number; y: number; w: number; h: number } | null;
   extractedCanvas: HTMLCanvasElement | null;
+  /** Current zoom level — persisted in app state so it survives tab switches. */
+  zoom: number;
   posX: number;
   posY: number;
   scale: number;
@@ -131,6 +133,7 @@ export type AppAction =
   | { type: 'ADD_LIBRARY_ASSET'; asset: LibraryAsset }
   | { type: 'REMOVE_LIBRARY_ASSET'; id: string }
   | { type: 'UPDATE_LIBRARY_ASSET'; id: string; updates: Partial<Pick<LibraryAsset, 'name' | 'tags'>> }
+  | { type: 'REORDER_LIBRARY'; fromIndex: number; toIndex: number }
   /** Merge the layer at `index` down into the layer at `index - 1`, replacing both with one flattened layer. */
   | { type: 'MERGE_LAYERS_DOWN'; index: number; mergedLayer: Layer }
   /** Reset the project to a blank slate (keeps config, clears layers + library + splitter). */

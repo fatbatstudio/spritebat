@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { AppAction, AppState, LibraryAsset } from '../types';
 import { ImportFrameModal } from './ImportFrameModal';
 import { loadProject, saveLibrary } from '../project';
@@ -21,15 +21,54 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
   const [savingLibrary, setSavingLibrary] = useState(false);
   // Asset pending import — shows the frame picker modal
   const [importingAsset, setImportingAsset] = useState<LibraryAsset | null>(null);
+  // Drag-to-reorder state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  // Tag sidebar filter: null = All, "" = Untagged, "string" = specific tag
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
-  // Filter by name or tag
+  // ── Derive tag list with counts ────────────────────────────────────────────
+  const { tagCounts, untaggedCount } = useMemo(() => {
+    const counts = new Map<string, number>();
+    let untagged = 0;
+    for (const a of library) {
+      if (a.tags.length === 0) {
+        untagged++;
+      } else {
+        for (const t of a.tags) {
+          counts.set(t, (counts.get(t) || 0) + 1);
+        }
+      }
+    }
+    return { tagCounts: counts, untaggedCount: untagged };
+  }, [library]);
+
+  // Sorted tag names for sidebar display
+  const sortedTags = useMemo(
+    () => [...tagCounts.keys()].sort((a, b) => a.localeCompare(b)),
+    [tagCounts],
+  );
+
+  // Auto-reset selectedTag if the tag no longer exists in library
+  useEffect(() => {
+    if (selectedTag === null || selectedTag === '') return;
+    if (!tagCounts.has(selectedTag)) setSelectedTag(null);
+  }, [selectedTag, tagCounts]);
+
+  // ── Two-stage filtering (tag → search) ─────────────────────────────────────
+  const tagFiltered = useMemo(() => {
+    if (selectedTag === null) return library;                       // All
+    if (selectedTag === '') return library.filter(a => a.tags.length === 0); // Untagged
+    return library.filter(a => a.tags.includes(selectedTag));       // Specific tag
+  }, [library, selectedTag]);
+
   const query = search.trim().toLowerCase();
   const filtered = query
-    ? library.filter(a =>
+    ? tagFiltered.filter(a =>
         a.name.toLowerCase().includes(query) ||
         a.tags.some(t => t.toLowerCase().includes(query))
       )
-    : library;
+    : tagFiltered;
 
   function startEdit(asset: LibraryAsset) {
     setEditingId(asset.id);
@@ -58,7 +97,8 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
   }
 
   function handleRemove(asset: LibraryAsset) {
-    URL.revokeObjectURL(asset.objectUrl);
+    // Don't revoke objectUrl here — the asset may be restored via undo.
+    // URLs are cleaned up when the project is closed (CLOSE_PROJECT clears history).
     dispatch({ type: 'REMOVE_LIBRARY_ASSET', id: asset.id });
   }
 
@@ -163,10 +203,50 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
     }
   }
 
+  // ── Card reorder drag handlers ──────────────────────────────────────────────
+  function onCardDragStart(id: string) {
+    setDraggingId(id);
+  }
+
+  function onCardDragOver(e: React.DragEvent, id: string) {
+    e.preventDefault();
+    // Only treat as card reorder if we're dragging a card (no files)
+    if (draggingId && draggingId !== id) {
+      setDragOverId(id);
+    }
+  }
+
+  function onCardDrop(e: React.DragEvent, targetId: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggingId || draggingId === targetId) {
+      setDraggingId(null);
+      setDragOverId(null);
+      return;
+    }
+    const fromIndex = library.findIndex(a => a.id === draggingId);
+    const toIndex = library.findIndex(a => a.id === targetId);
+    if (fromIndex !== -1 && toIndex !== -1) {
+      dispatch({ type: 'REORDER_LIBRARY', fromIndex, toIndex });
+    }
+    setDraggingId(null);
+    setDragOverId(null);
+  }
+
+  function onCardDragEnd() {
+    setDraggingId(null);
+    setDragOverId(null);
+  }
+
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
-    if (e.dataTransfer.files.length > 0) importFiles(e.dataTransfer.files);
+    // Only import files from external drops — not internal card reorder drags
+    if (!draggingId && e.dataTransfer.files.length > 0) {
+      importFiles(e.dataTransfer.files);
+    }
+    setDraggingId(null);
+    setDragOverId(null);
   }
 
   return (
@@ -229,58 +309,128 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
         />
       </div>
 
-      {/* Grid — also a drop target */}
-      <div
-        className={`relative flex-1 overflow-y-auto p-4 transition-colors ${dragOver ? 'bg-indigo-950/40' : ''}`}
-        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={onDrop}
-      >
-        {library.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-gray-600 text-sm text-center border-2 border-dashed border-gray-800 rounded-lg">
-            <span className="text-3xl mb-2">📚</span>
-            <span>No assets yet</span>
-            <span className="text-xs mt-1 text-gray-700">
-              Import images, extract from the Asset Splitter, or import from a .spritebat file
-            </span>
-            <span className="text-xs mt-2 text-gray-800">Drop images here</span>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-xs text-gray-600 text-center mt-8">
-            No assets match "{search}"
-          </div>
-        ) : (
-          <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
-            {filtered.map(asset => (
-              <AssetCard
-                key={asset.id}
-                asset={asset}
-                isEditing={editingId === asset.id}
-                editName={editName}
-                editTags={editTags}
-                onEditName={setEditName}
-                onEditTags={setEditTags}
-                onStartEdit={() => startEdit(asset)}
-                onCommitEdit={() => commitEdit(asset.id)}
-                onCancelEdit={() => setEditingId(null)}
-                onImport={() => handleImportAsLayer(asset)}
-                onDownload={() => handleDownload(asset)}
-                onRemove={() => handleRemove(asset)}
-                onDuplicate={() => handleDuplicate(asset)}
-                onFlipH={() => handleFlipH(asset)}
-                onFlipV={() => handleFlipV(asset)}
-              />
+      {/* Body: sidebar + grid */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* ── Tag sidebar ────────────────────────────────────────────────────── */}
+        {library.length > 0 && (
+          <div className="w-[180px] flex-shrink-0 border-r border-gray-700 bg-gray-900 overflow-y-auto">
+            <div className="px-3 pt-3 pb-1 text-xs font-bold text-gray-500 uppercase tracking-wider">Tags</div>
+
+            {/* All */}
+            <button
+              onClick={() => setSelectedTag(null)}
+              className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors ${
+                selectedTag === null
+                  ? 'bg-indigo-950/60 text-indigo-300 border-l-2 border-indigo-500'
+                  : 'text-gray-400 hover:bg-gray-800 border-l-2 border-transparent'
+              }`}
+            >
+              <span>All</span>
+              <span className="text-gray-600">{library.length}</span>
+            </button>
+
+            {/* Untagged (only shown when untagged assets exist) */}
+            {untaggedCount > 0 && (
+              <button
+                onClick={() => setSelectedTag('')}
+                className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors ${
+                  selectedTag === ''
+                    ? 'bg-indigo-950/60 text-indigo-300 border-l-2 border-indigo-500'
+                    : 'text-gray-400 hover:bg-gray-800 border-l-2 border-transparent'
+                }`}
+              >
+                <span className="italic">Untagged</span>
+                <span className="text-gray-600">{untaggedCount}</span>
+              </button>
+            )}
+
+            {/* Divider */}
+            {sortedTags.length > 0 && <div className="mx-3 my-1.5 border-t border-gray-700" />}
+
+            {/* Tag list */}
+            {sortedTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => setSelectedTag(tag)}
+                className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between gap-1 transition-colors ${
+                  selectedTag === tag
+                    ? 'bg-indigo-950/60 text-indigo-300 border-l-2 border-indigo-500'
+                    : 'text-gray-400 hover:bg-gray-800 border-l-2 border-transparent'
+                }`}
+              >
+                <span className="truncate">{tag}</span>
+                <span className="text-gray-600 flex-shrink-0">{tagCounts.get(tag)}</span>
+              </button>
             ))}
           </div>
         )}
-        {/* Drop hint overlay when dragging over a populated library */}
-        {dragOver && library.length > 0 && (
-          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-            <div className="bg-indigo-900/80 text-indigo-200 text-sm px-4 py-2 rounded-lg border border-indigo-500">
-              Drop to add to library
+
+        {/* ── Grid — also a drop target for external files ───────────────────── */}
+        <div
+          className={`relative flex-1 overflow-y-auto p-4 transition-colors ${dragOver && !draggingId ? 'bg-indigo-950/40' : ''}`}
+          onDragOver={e => { e.preventDefault(); if (!draggingId) setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+        >
+          {library.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 text-gray-600 text-sm text-center border-2 border-dashed border-gray-800 rounded-lg">
+              <span className="text-3xl mb-2">📚</span>
+              <span>No assets yet</span>
+              <span className="text-xs mt-1 text-gray-700">
+                Import images, extract from the Asset Splitter, or import from a .spritebat file
+              </span>
+              <span className="text-xs mt-2 text-gray-800">Drop images here</span>
             </div>
-          </div>
-        )}
+          ) : filtered.length === 0 ? (
+            <div className="text-xs text-gray-600 text-center mt-8">
+              No assets match
+              {selectedTag !== null && (
+                <> tag "<span className="text-gray-500">{selectedTag || 'Untagged'}</span>"</>
+              )}
+              {selectedTag !== null && query && ' and'}
+              {query && <> search "<span className="text-gray-500">{search}</span>"</>}
+              {selectedTag === null && !query && ' your filters'}
+            </div>
+          ) : (
+            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
+              {filtered.map(asset => (
+                <AssetCard
+                  key={asset.id}
+                  asset={asset}
+                  isEditing={editingId === asset.id}
+                  editName={editName}
+                  editTags={editTags}
+                  onEditName={setEditName}
+                  onEditTags={setEditTags}
+                  onStartEdit={() => startEdit(asset)}
+                  onCommitEdit={() => commitEdit(asset.id)}
+                  onCancelEdit={() => setEditingId(null)}
+                  onImport={() => handleImportAsLayer(asset)}
+                  onDownload={() => handleDownload(asset)}
+                  onRemove={() => handleRemove(asset)}
+                  onDuplicate={() => handleDuplicate(asset)}
+                  onFlipH={() => handleFlipH(asset)}
+                  onFlipV={() => handleFlipV(asset)}
+                  isDragging={draggingId === asset.id}
+                  isDragOver={dragOverId === asset.id}
+                  canReorder={!query && selectedTag === null}
+                  onDragStart={() => onCardDragStart(asset.id)}
+                  onDragOver={e => onCardDragOver(e, asset.id)}
+                  onDrop={e => onCardDrop(e, asset.id)}
+                  onDragEnd={onCardDragEnd}
+                />
+              ))}
+            </div>
+          )}
+          {/* Drop hint overlay when dragging external files over a populated library */}
+          {dragOver && !draggingId && library.length > 0 && (
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div className="bg-indigo-900/80 text-indigo-200 text-sm px-4 py-2 rounded-lg border border-indigo-500">
+                Drop to add to library
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Frame picker modal */}
@@ -325,12 +475,20 @@ interface AssetCardProps {
   onDuplicate: () => void;
   onFlipH: () => void;
   onFlipV: () => void;
+  isDragging: boolean;
+  isDragOver: boolean;
+  canReorder: boolean;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
 }
 
 function AssetCard({
   asset, isEditing, editName, editTags,
   onEditName, onEditTags, onStartEdit, onCommitEdit, onCancelEdit,
   onImport, onDownload, onRemove, onDuplicate, onFlipH, onFlipV,
+  isDragging, isDragOver, canReorder, onDragStart, onDragOver, onDrop, onDragEnd,
 }: AssetCardProps) {
   // Scale preview to fit 140px wide, max 4×
   const previewScale = Math.min(4, 140 / asset.width);
@@ -338,7 +496,16 @@ function AssetCard({
   const previewH = Math.round(asset.height * previewScale);
 
   return (
-    <div className="flex flex-col bg-gray-900 border border-gray-700 rounded-lg overflow-hidden hover:border-gray-500 transition-colors">
+    <div
+      className={`flex flex-col bg-gray-900 border rounded-lg overflow-hidden transition-colors ${
+        isDragOver ? 'border-indigo-500 ring-1 ring-indigo-500/50' : 'border-gray-700 hover:border-gray-500'
+      } ${isDragging ? 'opacity-40' : ''}`}
+      draggable={canReorder && !isEditing}
+      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart(); }}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+    >
       {/* Thumbnail */}
       <div
         className="flex items-center justify-center p-2"

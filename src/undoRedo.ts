@@ -6,7 +6,7 @@
  * decides *which* actions push a snapshot onto the undo stack.
  *
  * Stack entries contain only the undoable slice of AppState
- * (config + layers + selectedLayerId), keeping memory use low.
+ * (config + layers + selectedLayerId + library), keeping memory use low.
  * Non-undoable state (zoom, playback, splitter, etc.) is never
  * snapshotted and is unaffected by undo/redo.
  */
@@ -24,6 +24,7 @@ interface Snapshot {
   config:          AppState['config'];
   layers:          AppState['layers'];
   selectedLayerId: AppState['selectedLayerId'];
+  library:         AppState['library'];
 }
 
 function snapshot(s: AppState): Snapshot {
@@ -31,6 +32,7 @@ function snapshot(s: AppState): Snapshot {
     config:          s.config,
     layers:          s.layers,
     selectedLayerId: s.selectedLayerId,
+    library:         s.library,
   };
 }
 
@@ -40,6 +42,7 @@ function applySnapshot(present: AppState, snap: Snapshot): AppState {
     config:          snap.config,
     layers:          snap.layers,
     selectedLayerId: snap.selectedLayerId,
+    library:         snap.library,
   };
 }
 
@@ -58,6 +61,10 @@ const UNDOABLE: ReadonlySet<AppAction['type']> = new Set([
   'REORDER_LAYERS',
   'MERGE_LAYERS_DOWN',
   // UPDATE_LAYER_TRANSIENT is intentionally excluded — slider drag feedback only
+  'ADD_LIBRARY_ASSET',
+  'REMOVE_LIBRARY_ASSET',
+  'UPDATE_LIBRARY_ASSET',
+  'REORDER_LIBRARY',
 ]);
 
 // Maximum number of undo steps kept in memory.
@@ -74,7 +81,8 @@ export interface UndoRedoState {
 export type UndoRedoAction =
   | AppAction
   | { type: 'UNDO' }
-  | { type: 'REDO' };
+  | { type: 'REDO' }
+  | { type: 'SNAPSHOT' };
 
 // ─── Higher-order reducer ────────────────────────────────────────────────────
 
@@ -104,6 +112,17 @@ export function undoRedoReducer(
       past:    [...state.past, snapshot(state.present)],
       present: applySnapshot(state.present, next),
       future:  newFuture,
+    };
+  }
+
+  // ── SNAPSHOT — push current state to undo stack without changing anything ──
+  // Used at the start of a drag so that transient updates can be undone as a group.
+  if (action.type === 'SNAPSHOT') {
+    const past = [...state.past, snapshot(state.present)];
+    return {
+      past:    past.length > MAX_HISTORY ? past.slice(-MAX_HISTORY) : past,
+      present: state.present,
+      future:  [],
     };
   }
 

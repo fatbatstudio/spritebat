@@ -28,6 +28,7 @@ export const initialState: AppState = {
     selectionMask: null,
     selectionBounds: null,
     extractedCanvas: null,
+    zoom: 1,
     posX: 0,
     posY: 0,
     scale: 1,
@@ -166,6 +167,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           a.id === action.id ? { ...a, ...action.updates } : a
         ),
       };
+
+    case 'REORDER_LIBRARY': {
+      const lib = [...state.library];
+      const [moved] = lib.splice(action.fromIndex, 1);
+      lib.splice(action.toIndex, 0, moved);
+      return { ...state, library: lib };
+    }
 
     case 'MERGE_LAYERS_DOWN': {
       // Replace layers[index] and layers[index-1] with mergedLayer at index-1

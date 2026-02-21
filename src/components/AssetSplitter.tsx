@@ -208,8 +208,10 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
   const marchingPhaseRef = useRef(0);
 
   const [tool, setTool] = useState<SplitterTool>('box');
-  const [zoom, setZoom] = useState(1);
+  const zoom = splitter.zoom;
+  const setZoom = useCallback((z: number) => dispatch({ type: 'SET_SPLITTER', updates: { zoom: z } }), [dispatch]);
   const [extractName, setExtractName] = useState('asset');
+  const [extractTags, setExtractTags] = useState('');
   const [cursor, setCursor] = useState('crosshair');
   // Canvas pending "Add as Layer" — shows the frame picker modal
   const [importCanvas, setImportCanvas] = useState<HTMLCanvasElement | null>(null);
@@ -220,6 +222,8 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
 
   const liveMaskRef = useRef<HTMLCanvasElement | null>(null);
   const dragRef = useRef<DragState>({ kind: 'none' });
+  // Spacebar-held panning (Photoshop-style)
+  const spaceHeldRef = useRef(false);
   // Cached outline path for the committed mask. Rebuilt whenever a new mask is
   // committed. Used to draw marching ants that accurately follow any mask shape
   // (box, lasso, or add/subtract composite).
@@ -357,8 +361,9 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
     redraw();
   }, [splitter.image, zoom, redraw]);
 
-  // Fit zoom on first image load only — subsequent loads retain the current zoom level
-  const hadImageRef = useRef(false);
+  // Fit zoom on first image load only — subsequent loads retain the current zoom level.
+  // Initialise to true when splitter already has an image on mount (returning from another tab).
+  const hadImageRef = useRef(!!splitter.image);
   useEffect(() => {
     if (!splitter.image) {
       hadImageRef.current = false;
@@ -371,8 +376,37 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
     const availH = container ? container.clientHeight - 32 : 480;
     const fit = Math.min(1, availW / splitter.image.naturalWidth, availH / splitter.image.naturalHeight);
     const nearest = [...ZOOM_STEPS].reverse().find(z => z <= fit) ?? ZOOM_STEPS[0];
-    setZoom(nearest); // eslint-disable-line react-hooks/set-state-in-effect
-  }, [splitter.image]);
+    setZoom(nearest);
+  }, [splitter.image, setZoom]);
+
+  // ── Spacebar pan (Photoshop-style: hold Space then drag) ──────────────────
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.code !== 'Space') return;
+      // Don't hijack Space when typing in an input/textarea
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      // Prevent browser scroll on every Space keydown (including repeats)
+      e.preventDefault();
+      if (e.repeat || spaceHeldRef.current) return;
+      spaceHeldRef.current = true;
+      // Only show grab cursor if not already in a drag
+      if (dragRef.current.kind === 'none') setCursor('grab');
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.code === 'Space') {
+        spaceHeldRef.current = false;
+        // Restore default cursor if not in a drag
+        if (dragRef.current.kind === 'none') setCursor('crosshair');
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, []);
 
   // ── Coordinate helpers ───────────────────────────────────────────────────────
 
@@ -408,8 +442,8 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
   function onPointerDown(e: React.PointerEvent) {
     if (!splitter.image) return;
 
-    // Middle-click: pan the scroll container instead of selecting
-    if (e.button === 1) {
+    // Middle-click or Spacebar+left-click: pan the scroll container
+    if (e.button === 1 || (e.button === 0 && spaceHeldRef.current)) {
       e.preventDefault();
       e.currentTarget.setPointerCapture(e.pointerId);
       const container = containerRef.current!;
@@ -524,9 +558,9 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
     liveDragRectRef.current = null;
     liveMaskRef.current = null;
 
-    // Pan ended — restore default cursor
+    // Pan ended — restore to grab if Space still held, otherwise crosshair
     if (drag.kind === 'pan') {
-      setCursor('crosshair');
+      setCursor(spaceHeldRef.current ? 'grab' : 'crosshair');
       return;
     }
 
@@ -578,10 +612,11 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
       const objectUrl = URL.createObjectURL(blob);
       const img = new Image();
       img.onload = () => {
+        const tags = extractTags.split(',').map(t => t.trim()).filter(Boolean);
         const asset: LibraryAsset = {
           id: crypto.randomUUID(),
           name: extractName,
-          tags: [],
+          tags,
           objectUrl,
           image: img,
           width: img.naturalWidth,
@@ -635,6 +670,7 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
     hadImageRef.current = false;
     dispatch({ type: 'SET_SPLITTER', updates: { image: null, objectUrl: null, selectionMask: null, selectionBounds: null, extractedCanvas: null } });
     setExtractName('asset');
+    setExtractTags('');
   }
 
   // ── Load from Layer ────────────────────────────────────────────────────────
@@ -959,6 +995,13 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
               onChange={e => setExtractName(e.target.value)}
               placeholder="Asset name"
               className="bg-gray-800 border border-gray-600 text-white text-xs px-2 py-1 rounded"
+            />
+            <input
+              type="text"
+              value={extractTags}
+              onChange={e => setExtractTags(e.target.value)}
+              placeholder="Tags (comma separated)"
+              className="bg-gray-800 border border-gray-600 text-gray-400 text-xs px-2 py-1 rounded"
             />
 
             {hasSelection && !splitter.extractedCanvas && (

@@ -6,11 +6,17 @@ Browser-based sprite sheet compositor for layering, tinting, and combining 2D ga
 
 **By [FATBAT Studio](https://eidolware.com/about/)** · [Bluesky](https://bsky.app/profile/fatbat.studio) · [Ko-fi](https://ko-fi.com/fatbatstudio)
 
+![Composer — layer, tint, and composite sprite sheets](public/screenshot-composer.png)
+
+![Asset Splitter — select and extract regions from sprite sheets](public/screenshot-asset-splitter.png)
+
+![Library — organize extracted assets with tags and search](public/screenshot-library.png)
+
 ## Features
 
 - **Composer** — Stack layers with per-layer HSL color shift, opacity, offsets, and per-frame position nudge. Drag to reposition on the canvas, merge layers down, undo/redo all actions. Each layer can have its own input grid layout.
-- **Asset Splitter** — Load a reference image or import directly from a composer layer (full sheet or a specific frame). Box/lasso select regions (Shift to add, Alt to subtract), resize handles for fine-tuning, then extract as a trimmed PNG to the library or as a new layer.
-- **Library** — Store extracted assets for reuse. Duplicate, flip H/V, import into specific frame cells, or add as a full layer. Save/load library assets as standalone .spritebat files, or import assets from another project.
+- **Asset Splitter** — Load a reference image or import directly from a composer layer (full sheet or a specific frame). Box/lasso select regions (Shift to add, Alt to subtract), resize handles for fine-tuning, then extract as a trimmed PNG to the library or as a new layer. Name and tag assets before extracting. Hold Space to pan, middle-click to pan, scroll to zoom.
+- **Library** — Store extracted assets with tags for organization. Filter by tag sidebar, search by name or tag, drag to reorder. Duplicate, flip H/V, import into specific frame cells, or add as a full layer. Save/load library assets as standalone .spritebat files. Undo/redo all library actions.
 - **Tile to Sheet** — Stamp a single-frame asset across chosen directions and frames to build a full sprite sheet in one click.
 - **Clear Frames** — Erase specific cells from a layer so you can replace them with new content.
 - **Animated Preview** — Preview animations per direction with forward, reverse, and ping-pong playback modes. Click frame indicators to jump to any frame.

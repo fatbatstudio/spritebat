@@ -143,6 +143,8 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!selectedLayer) return;
     e.currentTarget.setPointerCapture(e.pointerId);
+    // Snapshot the pre-drag state so the entire drag can be undone in one step
+    dispatch({ type: 'SNAPSHOT' });
     if (frameOffsetMode) {
       // Drag moves the per-frame offset for the current frame
       const fof = selectedLayer.frameOffsets?.[previewFrame];
@@ -161,7 +163,7 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
         origY: selectedLayer.offsetY,
       };
     }
-  }, [selectedLayer, frameOffsetMode, previewFrame]);
+  }, [selectedLayer, frameOffsetMode, previewFrame, dispatch]);
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!dragRef.current || !selectedLayer) return;
@@ -179,14 +181,16 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
         y: current[i]?.y ?? 0,
       }));
       next[previewFrame] = { x: origX + dx, y: origY + dy };
+      // Transient during drag — no undo step per pixel
       dispatch({
-        type: 'UPDATE_LAYER',
+        type: 'UPDATE_LAYER_TRANSIENT',
         id: selectedLayer.id,
         updates: { frameOffsets: next },
       });
     } else {
+      // Transient during drag — no undo step per pixel
       dispatch({
-        type: 'UPDATE_LAYER',
+        type: 'UPDATE_LAYER_TRANSIENT',
         id: selectedLayer.id,
         updates: { offsetX: origX + dx, offsetY: origY + dy },
       });
@@ -194,6 +198,8 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
   }, [selectedLayer, canvasZoom, frameOffsetMode, previewFrame, config.framesPerDirection, dispatch]);
 
   const onPointerUp = useCallback(() => {
+    // Transient updates already modified state during drag.
+    // The SNAPSHOT at drag start ensures undo restores the pre-drag position.
     dragRef.current = null;
   }, []);
 
