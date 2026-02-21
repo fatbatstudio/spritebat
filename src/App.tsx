@@ -14,6 +14,7 @@ import { ProjectConfigModal } from './components/ProjectConfig';
 import { ExportBar } from './components/ExportBar';
 import { LibraryTab } from './components/LibraryTab';
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { useIsMobile } from './hooks/useIsMobile';
 
 // Global color shift cache — persists across renders
 const globalCache = new ColorShiftCache();
@@ -97,6 +98,40 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
+
+  // ── Mobile responsive ──────────────────────────────────────────────────────
+  const isMobile = useIsMobile();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showMobileLayers, setShowMobileLayers] = useState(false);
+  const [showMobilePreview, setShowMobilePreview] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close mobile menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [menuOpen]);
+
+  // Close mobile overlays when switching away from mobile
+  useEffect(() => {
+    if (!isMobile) {
+      setMenuOpen(false);
+      setShowMobileLayers(false);
+      setShowMobilePreview(false);
+    }
+  }, [isMobile]);
+
+  // Wrapper dispatch that auto-closes mobile layers panel on layer select
+  const mobileLayerDispatch = useCallback((action: UndoRedoAction) => {
+    typedDispatch(action);
+    if ('type' in action && action.type === 'SELECT_LAYER') setShowMobileLayers(false);
+  }, [typedDispatch]);
 
   // ── About dialog ───────────────────────────────────────────────────────────
   const [showAbout, setShowAbout] = useState(false);
@@ -202,156 +237,237 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-950 text-gray-100 overflow-hidden select-none">
-      {/* ── Top header bar (two rows) ── */}
+      {/* ── Top header bar ── */}
       <header className="flex flex-col bg-gray-900 border-b border-gray-700 flex-shrink-0">
-        {/* Row 1: Logo + Tabs + Project actions */}
-        <div className="flex items-center px-4 py-1.5">
-          {/* Left: branding */}
-          <div className="flex-1 flex items-center gap-2">
-            <span className="font-bold text-indigo-400 text-sm tracking-wide flex items-center gap-1"><img src="/bat-emoji.png" alt="🦇" className="w-5 h-5" style={{ imageRendering: 'auto' }} /> SpriteBat</span>
-            <span className="text-gray-600 text-xs">v1.02</span>
-          </div>
+        {isMobile ? (
+          /* ── Mobile header: single row with menu ── */
+          <div className="flex items-center px-3 py-1.5 relative" ref={menuRef}>
+            {/* Left: branding */}
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-indigo-400 text-sm tracking-wide flex items-center gap-1"><img src="/bat-emoji.png" alt="🦇" className="w-5 h-5" style={{ imageRendering: 'auto' }} /> SpriteBat</span>
+            </div>
 
-          {/* Center: tab switcher */}
-          <div className="flex justify-center">
-            <div className="flex gap-1 bg-gray-800 p-0.5 rounded">
-              <button
-                onClick={() => typedDispatch({ type: 'SET_TAB', tab: 'composer' })}
-                className={`text-xs px-3 py-1 rounded transition-colors ${
-                  state.activeTab === 'composer'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Composer
-              </button>
-              <button
-                onClick={() => typedDispatch({ type: 'SET_TAB', tab: 'splitter' })}
-                className={`text-xs px-3 py-1 rounded transition-colors ${
-                  state.activeTab === 'splitter'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Asset Splitter
-              </button>
-              <button
-                onClick={() => typedDispatch({ type: 'SET_TAB', tab: 'library' })}
-                className={`text-xs px-3 py-1 rounded transition-colors ${
-                  state.activeTab === 'library'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Library
-                {state.library.length > 0 && (
-                  <span className="ml-1 text-indigo-300 tabular-nums">{state.library.length}</span>
+            {/* Center: tab switcher */}
+            <div className="flex-1 flex justify-center">
+              <div className="flex gap-0.5 bg-gray-800 p-0.5 rounded">
+                <button
+                  onClick={() => { typedDispatch({ type: 'SET_TAB', tab: 'composer' }); setMenuOpen(false); }}
+                  className={`text-xs px-2 py-1 rounded transition-colors ${state.activeTab === 'composer' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                >Composer</button>
+                <button
+                  onClick={() => { typedDispatch({ type: 'SET_TAB', tab: 'splitter' }); setMenuOpen(false); }}
+                  className={`text-xs px-2 py-1 rounded transition-colors ${state.activeTab === 'splitter' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                >Splitter</button>
+                <button
+                  onClick={() => { typedDispatch({ type: 'SET_TAB', tab: 'library' }); setMenuOpen(false); }}
+                  className={`text-xs px-2 py-1 rounded transition-colors ${state.activeTab === 'library' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                >
+                  Library
+                  {state.library.length > 0 && <span className="ml-1 text-indigo-300 tabular-nums">{state.library.length}</span>}
+                </button>
+              </div>
+            </div>
+
+            {/* Right: menu button */}
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              className="text-gray-400 hover:text-white text-lg px-1.5 py-0.5 rounded transition-colors"
+              title="Menu"
+            >☰</button>
+
+            {/* Hidden file input for Open */}
+            <input ref={loadInputRef} type="file" accept=".spritebat" className="hidden" onChange={handleLoad} />
+
+            {/* Menu dropdown */}
+            {menuOpen && (
+              <div className="absolute right-2 top-full mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-2xl z-50 py-1 min-w-[200px]">
+                {/* Undo / Redo */}
+                <div className="flex gap-1 px-3 py-1.5">
+                  <button
+                    onClick={() => { typedDispatch({ type: 'UNDO' }); }}
+                    disabled={!canUndo}
+                    className="flex-1 text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-30 text-gray-300 px-2 py-1.5 rounded"
+                  >↩ Undo</button>
+                  <button
+                    onClick={() => { typedDispatch({ type: 'REDO' }); }}
+                    disabled={!canRedo}
+                    className="flex-1 text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-30 text-gray-300 px-2 py-1.5 rounded"
+                  >↪ Redo</button>
+                </div>
+                <div className="border-t border-gray-700 my-1" />
+                {/* Project actions */}
+                {projectError && <div className="px-3 py-1 text-xs text-red-400">{projectError}</div>}
+                <button onClick={() => { loadInputRef.current?.click(); setMenuOpen(false); }} disabled={!!projectBusy} className="w-full text-left text-xs text-gray-300 hover:bg-gray-700 px-3 py-2 disabled:opacity-50">📂 Open Project</button>
+                <button onClick={() => { handleSave(); setMenuOpen(false); }} disabled={!!projectBusy || (state.layers.length === 0 && state.library.length === 0)} className="w-full text-left text-xs text-gray-300 hover:bg-gray-700 px-3 py-2 disabled:opacity-50">💾 Save Project</button>
+                <button onClick={() => { handleClose(); setMenuOpen(false); }} disabled={!!projectBusy} className="w-full text-left text-xs text-gray-400 hover:bg-gray-700 hover:text-red-300 px-3 py-2 disabled:opacity-50">✕ Close Project</button>
+                <div className="border-t border-gray-700 my-1" />
+                {/* Config */}
+                <button onClick={() => { typedDispatch({ type: 'TOGGLE_CONFIG' }); setMenuOpen(false); }} className="w-full text-left text-xs text-gray-300 hover:bg-gray-700 px-3 py-2">
+                  ⚙ Config <span className="text-gray-500">{state.config.frameWidth}×{state.config.frameHeight} · {state.config.framesPerDirection}f · {state.config.directions}d</span>
+                </button>
+                <div className="border-t border-gray-700 my-1" />
+                {/* Secondary links */}
+                <button onClick={() => { setShowAbout(true); setMenuOpen(false); }} className="w-full text-left text-xs text-gray-400 hover:bg-gray-700 hover:text-white px-3 py-2">? About</button>
+                <a href="https://ko-fi.com/fatbatstudio" target="_blank" rel="noopener noreferrer" className="block text-xs text-[#FF5E5B] hover:bg-gray-700 px-3 py-2">☕ Ko-fi</a>
+                <button onClick={() => { setShowTutorial(true); setMenuOpen(false); }} className="w-full text-left text-xs text-teal-400 hover:bg-gray-700 px-3 py-2">🎮 Try Example</button>
+                <div className="border-t border-gray-700 my-1" />
+                <a href="https://eidolware.com/about/" target="_blank" rel="noopener noreferrer" className="block text-xs text-gray-600 hover:text-gray-400 px-3 py-1.5">by FATBAT Studio</a>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* ── Desktop header: two rows ── */
+          <>
+            {/* Row 1: Logo + Tabs + Project actions */}
+            <div className="flex items-center px-4 py-1.5">
+              {/* Left: branding */}
+              <div className="flex-1 flex items-center gap-2">
+                <span className="font-bold text-indigo-400 text-sm tracking-wide flex items-center gap-1"><img src="/bat-emoji.png" alt="🦇" className="w-5 h-5" style={{ imageRendering: 'auto' }} /> SpriteBat</span>
+                <span className="text-gray-600 text-xs">v1.02</span>
+              </div>
+
+              {/* Center: tab switcher */}
+              <div className="flex justify-center">
+                <div className="flex gap-1 bg-gray-800 p-0.5 rounded">
+                  <button
+                    onClick={() => typedDispatch({ type: 'SET_TAB', tab: 'composer' })}
+                    className={`text-xs px-3 py-1 rounded transition-colors ${
+                      state.activeTab === 'composer'
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Composer
+                  </button>
+                  <button
+                    onClick={() => typedDispatch({ type: 'SET_TAB', tab: 'splitter' })}
+                    className={`text-xs px-3 py-1 rounded transition-colors ${
+                      state.activeTab === 'splitter'
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Asset Splitter
+                  </button>
+                  <button
+                    onClick={() => typedDispatch({ type: 'SET_TAB', tab: 'library' })}
+                    className={`text-xs px-3 py-1 rounded transition-colors ${
+                      state.activeTab === 'library'
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Library
+                    {state.library.length > 0 && (
+                      <span className="ml-1 text-indigo-300 tabular-nums">{state.library.length}</span>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Right: undo/redo + project actions */}
+              <div className="flex-1 flex items-center gap-2 justify-end">
+                <button
+                  onClick={() => typedDispatch({ type: 'UNDO' })}
+                  disabled={!canUndo}
+                  className="text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-gray-300 px-2.5 py-1.5 rounded flex items-center gap-1"
+                  title={`Undo (Ctrl+Z) — ${undoState.past.length} step${undoState.past.length !== 1 ? 's' : ''} available`}
+                >
+                  ↩ Undo
+                </button>
+                <button
+                  onClick={() => typedDispatch({ type: 'REDO' })}
+                  disabled={!canRedo}
+                  className="text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-gray-300 px-2.5 py-1.5 rounded flex items-center gap-1"
+                  title={`Redo (Ctrl+Y) — ${undoState.future.length} step${undoState.future.length !== 1 ? 's' : ''} available`}
+                >
+                  ↪ Redo
+                </button>
+
+                <div className="w-px h-4 bg-gray-700" />
+
+                {projectError && (
+                  <span className="text-xs text-red-400">{projectError}</span>
                 )}
+
+                <input
+                  ref={loadInputRef}
+                  type="file"
+                  accept=".spritebat"
+                  className="hidden"
+                  onChange={handleLoad}
+                />
+
+                <button
+                  onClick={() => loadInputRef.current?.click()}
+                  disabled={!!projectBusy}
+                  className="text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-300 px-3 py-1.5 rounded flex items-center gap-1"
+                  title="Open a .spritebat project file"
+                >
+                  {projectBusy === 'loading' ? '⏳' : '📂'} Open
+                </button>
+
+                <button
+                  onClick={handleSave}
+                  disabled={!!projectBusy || (state.layers.length === 0 && state.library.length === 0)}
+                  className="text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-300 px-3 py-1.5 rounded flex items-center gap-1"
+                  title="Save project as .spritebat"
+                >
+                  {projectBusy === 'saving' ? '⏳' : '💾'} Save
+                </button>
+
+                <button
+                  onClick={handleClose}
+                  disabled={!!projectBusy}
+                  className="text-xs bg-gray-700 hover:bg-red-900 hover:text-red-300 disabled:opacity-50 text-gray-400 px-3 py-1.5 rounded flex items-center gap-1"
+                  title="Close project — clears all layers and library"
+                >
+                  ✕ Close
+                </button>
+              </div>
+            </div>
+
+            {/* Row 2: Secondary links + Config */}
+            <div className="flex items-center justify-between px-4 py-1 border-t border-gray-800">
+              <div className="flex items-center gap-3">
+                <a href="https://eidolware.com/about/" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">by FATBAT Studio</a>
+                <button
+                  onClick={() => setShowAbout(true)}
+                  className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-white px-2 py-0.5 rounded transition-colors"
+                  title="About SpriteBat"
+                >
+                  ? About
+                </button>
+                <a
+                  href="https://ko-fi.com/fatbatstudio"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs bg-[#FF5E5B] hover:bg-[#e04e4b] text-white px-2 py-0.5 rounded transition-colors"
+                  title="Support on Ko-fi"
+                >
+                  ☕ Ko-fi
+                </a>
+                <button
+                  onClick={() => setShowTutorial(true)}
+                  className="text-xs bg-teal-700 hover:bg-teal-600 text-white px-2 py-0.5 rounded transition-colors"
+                  title="Load an example project to explore SpriteBat"
+                >
+                  🎮 Try Example
+                </button>
+              </div>
+
+              <button
+                onClick={() => typedDispatch({ type: 'TOGGLE_CONFIG' })}
+                className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-0.5 rounded flex items-center gap-1"
+              >
+                ⚙ Config
+                <span className="text-gray-500 ml-1">
+                  {state.config.frameWidth}×{state.config.frameHeight} · {state.config.framesPerDirection}f · {state.config.directions}d · in {state.config.defaultInputLayout.cols}×{state.config.defaultInputLayout.rows}
+                </span>
               </button>
             </div>
-          </div>
-
-          {/* Right: undo/redo + project actions */}
-          <div className="flex-1 flex items-center gap-2 justify-end">
-            <button
-              onClick={() => typedDispatch({ type: 'UNDO' })}
-              disabled={!canUndo}
-              className="text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-gray-300 px-2.5 py-1.5 rounded flex items-center gap-1"
-              title={`Undo (Ctrl+Z) — ${undoState.past.length} step${undoState.past.length !== 1 ? 's' : ''} available`}
-            >
-              ↩ Undo
-            </button>
-            <button
-              onClick={() => typedDispatch({ type: 'REDO' })}
-              disabled={!canRedo}
-              className="text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-30 disabled:cursor-not-allowed text-gray-300 px-2.5 py-1.5 rounded flex items-center gap-1"
-              title={`Redo (Ctrl+Y) — ${undoState.future.length} step${undoState.future.length !== 1 ? 's' : ''} available`}
-            >
-              ↪ Redo
-            </button>
-
-            <div className="w-px h-4 bg-gray-700" />
-
-            {projectError && (
-              <span className="text-xs text-red-400">{projectError}</span>
-            )}
-
-            <input
-              ref={loadInputRef}
-              type="file"
-              accept=".spritebat"
-              className="hidden"
-              onChange={handleLoad}
-            />
-
-            <button
-              onClick={() => loadInputRef.current?.click()}
-              disabled={!!projectBusy}
-              className="text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-300 px-3 py-1.5 rounded flex items-center gap-1"
-              title="Open a .spritebat project file"
-            >
-              {projectBusy === 'loading' ? '⏳' : '📂'} Open
-            </button>
-
-            <button
-              onClick={handleSave}
-              disabled={!!projectBusy || (state.layers.length === 0 && state.library.length === 0)}
-              className="text-xs bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-gray-300 px-3 py-1.5 rounded flex items-center gap-1"
-              title="Save project as .spritebat"
-            >
-              {projectBusy === 'saving' ? '⏳' : '💾'} Save
-            </button>
-
-            <button
-              onClick={handleClose}
-              disabled={!!projectBusy}
-              className="text-xs bg-gray-700 hover:bg-red-900 hover:text-red-300 disabled:opacity-50 text-gray-400 px-3 py-1.5 rounded flex items-center gap-1"
-              title="Close project — clears all layers and library"
-            >
-              ✕ Close
-            </button>
-          </div>
-        </div>
-
-        {/* Row 2: Secondary links + Config */}
-        <div className="flex items-center justify-between px-4 py-1 border-t border-gray-800">
-          <div className="flex items-center gap-3">
-            <a href="https://eidolware.com/about/" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">by FATBAT Studio</a>
-            <button
-              onClick={() => setShowAbout(true)}
-              className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-400 hover:text-white px-2 py-0.5 rounded transition-colors"
-              title="About SpriteBat"
-            >
-              ? About
-            </button>
-            <a
-              href="https://ko-fi.com/fatbatstudio"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs bg-[#FF5E5B] hover:bg-[#e04e4b] text-white px-2 py-0.5 rounded transition-colors"
-              title="Support on Ko-fi"
-            >
-              ☕ Ko-fi
-            </a>
-            <button
-              onClick={() => setShowTutorial(true)}
-              className="text-xs bg-teal-700 hover:bg-teal-600 text-white px-2 py-0.5 rounded transition-colors"
-              title="Load an example project to explore SpriteBat"
-            >
-              🎮 Try Example
-            </button>
-          </div>
-
-          <button
-            onClick={() => typedDispatch({ type: 'TOGGLE_CONFIG' })}
-            className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-0.5 rounded flex items-center gap-1"
-          >
-            ⚙ Config
-            <span className="text-gray-500 ml-1">
-              {state.config.frameWidth}×{state.config.frameHeight} · {state.config.framesPerDirection}f · {state.config.directions}d · in {state.config.defaultInputLayout.cols}×{state.config.defaultInputLayout.rows}
-            </span>
-          </button>
-        </div>
+          </>
+        )}
       </header>
 
       {/* ── PWA update banner ── */}
@@ -375,25 +491,79 @@ function App() {
       )}
 
       {/* ── Main content area ── */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col flex-1 overflow-hidden">
         {state.activeTab === 'composer' ? (
           <>
-            {/* Left: Layers panel */}
-            <LayersPanel
-              layers={state.layers}
-              selectedLayerId={state.selectedLayerId}
-              config={state.config}
-              dispatch={typedDispatch}
-              cache={globalCache}
-            />
+            {/* Mobile: toggle bar for slide-over panels */}
+            {isMobile && (
+              <div className="flex items-center gap-2 px-2 py-1.5 bg-gray-900 border-b border-gray-700 flex-shrink-0">
+                <button
+                  onClick={() => setShowMobileLayers(true)}
+                  className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded flex items-center gap-1"
+                >
+                  ☰ Layers
+                  {state.layers.length > 0 && <span className="text-indigo-300 tabular-nums">{state.layers.length}</span>}
+                </button>
+                <div className="flex-1" />
+                <button
+                  onClick={() => setShowMobilePreview(true)}
+                  className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded"
+                >
+                  ▶ Preview
+                </button>
+              </div>
+            )}
 
-            {/* Center: Main canvas */}
-            <div className="flex-1 overflow-hidden">
-              <MainCanvas state={state} dispatch={typedDispatch} cache={globalCache} />
+            <div className="flex flex-1 overflow-hidden">
+              {/* Left: Layers panel (desktop only) */}
+              {!isMobile && (
+                <LayersPanel
+                  layers={state.layers}
+                  selectedLayerId={state.selectedLayerId}
+                  config={state.config}
+                  dispatch={typedDispatch}
+                  cache={globalCache}
+                />
+              )}
+
+              {/* Center: Main canvas */}
+              <div className="flex-1 overflow-hidden">
+                <MainCanvas state={state} dispatch={typedDispatch} cache={globalCache} />
+              </div>
+
+              {/* Right: Animated preview (desktop only) */}
+              {!isMobile && (
+                <AnimatedPreview state={state} dispatch={typedDispatch} cache={globalCache} />
+              )}
             </div>
 
-            {/* Right: Animated preview */}
-            <AnimatedPreview state={state} dispatch={typedDispatch} cache={globalCache} />
+            {/* Mobile: Layers slide-over */}
+            {isMobile && showMobileLayers && (
+              <div className="fixed inset-0 z-40 flex">
+                <div className="h-full overflow-y-auto bg-gray-900" style={{ width: Math.min(280, window.innerWidth * 0.75) }}>
+                  <LayersPanel
+                    layers={state.layers}
+                    selectedLayerId={state.selectedLayerId}
+                    config={state.config}
+                    dispatch={mobileLayerDispatch}
+                    cache={globalCache}
+                    mobile
+                    onClose={() => setShowMobileLayers(false)}
+                  />
+                </div>
+                <div className="flex-1 bg-black/40" onClick={() => setShowMobileLayers(false)} />
+              </div>
+            )}
+
+            {/* Mobile: Preview slide-over */}
+            {isMobile && showMobilePreview && (
+              <div className="fixed inset-0 z-40 flex justify-end">
+                <div className="flex-1 bg-black/40" onClick={() => setShowMobilePreview(false)} />
+                <div className="h-full overflow-y-auto bg-gray-900" style={{ width: Math.min(280, window.innerWidth * 0.75) }}>
+                  <AnimatedPreview state={state} dispatch={typedDispatch} cache={globalCache} mobile onClose={() => setShowMobilePreview(false)} />
+                </div>
+              </div>
+            )}
           </>
         ) : state.activeTab === 'splitter' ? (
           <div className="flex-1 overflow-hidden">
@@ -410,7 +580,7 @@ function App() {
       {/* ── Layer properties bar (only in composer tab) ── */}
       {state.activeTab === 'composer' && (
         <div className="flex-shrink-0 bg-gray-900 border-t border-gray-700">
-          <LayerProperties layer={selectedLayer} config={state.config} dispatch={typedDispatch} cache={globalCache} frameOffsetMode={state.frameOffsetMode} />
+          <LayerProperties layer={selectedLayer} config={state.config} dispatch={typedDispatch} cache={globalCache} frameOffsetMode={state.frameOffsetMode} mobile={isMobile} />
         </div>
       )}
 
@@ -432,7 +602,7 @@ function App() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
           onClick={e => e.target === e.currentTarget && setShowAbout(false)}
         >
-          <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl flex flex-col gap-4 p-6" style={{ maxWidth: 680, width: '90vw' }}>
+          <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ maxWidth: 680, width: '90vw' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <img src="/bat-emoji.png" alt="🦇" className="w-6 h-6" style={{ imageRendering: 'auto' }} />

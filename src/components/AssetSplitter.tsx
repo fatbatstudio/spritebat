@@ -3,6 +3,7 @@ import type { AppState, AppAction, LibraryAsset, SplitterTool, SelectionMode } f
 import { DIRECTIONS_4, DIRECTIONS_8 } from '../types';
 import { trimTransparent, compositeFrame, renderFullSheet } from '../compositing';
 import { ColorShiftCache } from '../colorShift';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 import { ImportFrameModal } from './ImportFrameModal';
 
@@ -201,6 +202,7 @@ function extractThroughMask(
 
 export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
   const { splitter } = state;
+  const isMobile = useIsMobile();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -902,7 +904,7 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
         />
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className={`flex ${isMobile ? 'flex-col' : ''} flex-1 overflow-hidden`}>
         {/* Canvas */}
         <div
           ref={containerRef}
@@ -952,7 +954,7 @@ export function AssetSplitter({ state, dispatch, cache }: AssetSplitterProps) {
 
         {/* Right panel */}
         {(splitter.extractedCanvas || hasSelection) && (
-          <div className="flex flex-col gap-3 p-4 bg-gray-900 border-l border-gray-700 flex-shrink-0 overflow-y-auto" style={{ width: 210 }}>
+          <div className={`flex flex-col gap-3 p-4 bg-gray-900 ${isMobile ? 'border-t' : 'border-l'} border-gray-700 flex-shrink-0 overflow-y-auto`} style={isMobile ? { width: '100%', maxHeight: '35vh' } : { width: 210 }}>
             <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">
               {splitter.extractedCanvas ? 'Extracted' : 'Selection'}
             </span>

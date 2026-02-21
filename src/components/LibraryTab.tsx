@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { AppAction, AppState, LibraryAsset } from '../types';
 import { ImportFrameModal } from './ImportFrameModal';
 import { loadProject, saveLibrary } from '../project';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface LibraryTabProps {
   state: AppState;
@@ -10,6 +11,8 @@ interface LibraryTabProps {
 
 export function LibraryTab({ state, dispatch }: LibraryTabProps) {
   const { library, config } = state;
+  const isMobile = useIsMobile();
+  const [showMobileTags, setShowMobileTags] = useState(false);
   const [search, setSearch] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -252,7 +255,7 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-gray-950">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-2 bg-gray-900 border-b border-gray-700 flex-shrink-0">
+      <div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 bg-gray-900 border-b border-gray-700 flex-shrink-0 flex-wrap">
         <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">Asset Library</span>
         <span className="text-xs text-gray-500">{library.length} asset{library.length !== 1 ? 's' : ''}</span>
 
@@ -282,6 +285,17 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
           {savingLibrary ? '⏳' : '💾'} Save Library .spritebat
         </button>
 
+        {/* Mobile: Tags filter button */}
+        {isMobile && library.length > 0 && (
+          <button
+            onClick={() => setShowMobileTags(true)}
+            className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-2.5 py-1 rounded flex items-center gap-1"
+          >
+            🏷 Tags
+            {selectedTag !== null && <span className="text-indigo-300">*</span>}
+          </button>
+        )}
+
         {/* Hidden file inputs */}
         <input
           ref={fileInputRef}
@@ -305,14 +319,14 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by name or tag…"
-          className="bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1 rounded w-48"
+          className="bg-gray-800 border border-gray-700 text-white text-xs px-2 py-1 rounded w-full md:w-48"
         />
       </div>
 
       {/* Body: sidebar + grid */}
       <div className="flex flex-1 overflow-hidden">
-        {/* ── Tag sidebar ────────────────────────────────────────────────────── */}
-        {library.length > 0 && (
+        {/* ── Tag sidebar (desktop) ──────────────────────────────────────────── */}
+        {!isMobile && library.length > 0 && (
           <div className="w-[180px] flex-shrink-0 border-r border-gray-700 bg-gray-900 overflow-y-auto">
             <div className="px-3 pt-3 pb-1 text-xs font-bold text-gray-500 uppercase tracking-wider">Tags</div>
 
@@ -365,6 +379,55 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
           </div>
         )}
 
+        {/* ── Tag sidebar slide-over (mobile) ──────────────────────────────── */}
+        {isMobile && showMobileTags && (
+          <div className="fixed inset-0 z-40 flex">
+            <div className="h-full w-[220px] bg-gray-900 border-r border-gray-700 overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="px-3 pt-3 pb-1 text-xs font-bold text-gray-500 uppercase tracking-wider">Tags</div>
+              <button
+                onClick={() => { setSelectedTag(null); setShowMobileTags(false); }}
+                className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors ${
+                  selectedTag === null
+                    ? 'bg-indigo-950/60 text-indigo-300 border-l-2 border-indigo-500'
+                    : 'text-gray-400 hover:bg-gray-800 border-l-2 border-transparent'
+                }`}
+              >
+                <span>All</span>
+                <span className="text-gray-600">{library.length}</span>
+              </button>
+              {untaggedCount > 0 && (
+                <button
+                  onClick={() => { setSelectedTag(''); setShowMobileTags(false); }}
+                  className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between transition-colors ${
+                    selectedTag === ''
+                      ? 'bg-indigo-950/60 text-indigo-300 border-l-2 border-indigo-500'
+                      : 'text-gray-400 hover:bg-gray-800 border-l-2 border-transparent'
+                  }`}
+                >
+                  <span className="italic">Untagged</span>
+                  <span className="text-gray-600">{untaggedCount}</span>
+                </button>
+              )}
+              {sortedTags.length > 0 && <div className="mx-3 my-1.5 border-t border-gray-700" />}
+              {sortedTags.map(tag => (
+                <button
+                  key={tag}
+                  onClick={() => { setSelectedTag(tag); setShowMobileTags(false); }}
+                  className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between gap-1 transition-colors ${
+                    selectedTag === tag
+                      ? 'bg-indigo-950/60 text-indigo-300 border-l-2 border-indigo-500'
+                      : 'text-gray-400 hover:bg-gray-800 border-l-2 border-transparent'
+                  }`}
+                >
+                  <span className="truncate">{tag}</span>
+                  <span className="text-gray-600 flex-shrink-0">{tagCounts.get(tag)}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 bg-black/40" onClick={() => setShowMobileTags(false)} />
+          </div>
+        )}
+
         {/* ── Grid — also a drop target for external files ───────────────────── */}
         <div
           className={`relative flex-1 overflow-y-auto p-4 transition-colors ${dragOver && !draggingId ? 'bg-indigo-950/40' : ''}`}
@@ -392,7 +455,7 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
               {selectedTag === null && !query && ' your filters'}
             </div>
           ) : (
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
+            <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? 140 : 160}px, 1fr))` }}>
               {filtered.map(asset => (
                 <AssetCard
                   key={asset.id}

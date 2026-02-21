@@ -9,6 +9,8 @@ interface AnimatedPreviewProps {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
   cache: ColorShiftCache;
+  mobile?: boolean;
+  onClose?: () => void;
 }
 
 const MODE_LABELS: Record<PlaybackMode, string> = {
@@ -17,7 +19,7 @@ const MODE_LABELS: Record<PlaybackMode, string> = {
   pingpong: '⇄ Ping-pong',
 };
 
-export function AnimatedPreview({ state, dispatch, cache }: AnimatedPreviewProps) {
+export function AnimatedPreview({ state, dispatch, cache, mobile, onClose }: AnimatedPreviewProps) {
   const {
     layers, config, previewDirection, previewFrame, previewPlaying,
     previewMode, previewFps, previewZoom
@@ -95,10 +97,19 @@ export function AnimatedPreview({ state, dispatch, cache }: AnimatedPreviewProps
   const displayHeight = config.frameHeight * previewZoom;
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 border-l border-gray-700" style={{ width: 260 }}>
+    <div className="flex flex-col h-full bg-gray-900 border-l border-gray-700" style={{ width: mobile ? '100%' : 260 }}>
       {/* Header */}
-      <div className="px-3 py-2 border-b border-gray-700">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700">
         <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">Preview</span>
+        {mobile && onClose && (
+          <button
+            className="text-xs bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded transition-colors"
+            onClick={onClose}
+            title="Close panel"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col items-center gap-3 p-3 overflow-y-auto flex-1">

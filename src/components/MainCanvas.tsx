@@ -4,6 +4,7 @@ import { frameRect, flatIndex } from '../types';
 import { ColorShiftCache } from '../colorShift';
 import { compositeFrame } from '../compositing';
 import { getDirectionRow } from '../state';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 interface MainCanvasProps {
   state: AppState;
@@ -128,6 +129,7 @@ function SourceSheetOverlay({ layer, config, dirRow, frameIndex, zoom, cache }: 
 
 export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isMobile = useIsMobile();
   const { config, layers, previewDirection, previewFrame, canvasZoom, sheetZoom, selectedLayerId, frameOffsetMode } = state;
 
   const dirRow = useMemo(
@@ -313,9 +315,9 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
   return (
     <div className="flex flex-col h-full bg-gray-950 overflow-auto items-center">
       {/* Zoom controls */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-800 w-full flex-wrap">
+      <div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 border-b border-gray-800 w-full flex-wrap">
         <span className="text-xs text-gray-400">Canvas:</span>
-        {[0.25, 0.5, 1, 2, 4, 8].map(z => (
+        {(isMobile ? [0.5, 1, 2, 4] : [0.25, 0.5, 1, 2, 4, 8]).map(z => (
           <button
             key={z}
             onClick={() => dispatch({ type: 'SET_CANVAS_ZOOM', zoom: z })}
@@ -326,7 +328,7 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
         ))}
         <div className="w-px h-4 bg-gray-700" />
         <span className="text-xs text-gray-400">Sheets:</span>
-        {[0.25, 0.5, 1, 2, 4, 8].map(z => (
+        {(isMobile ? [0.5, 1, 2, 4] : [0.25, 0.5, 1, 2, 4, 8]).map(z => (
           <button
             key={z}
             onClick={() => dispatch({ type: 'SET_SHEET_ZOOM', zoom: z })}

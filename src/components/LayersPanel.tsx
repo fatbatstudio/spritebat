@@ -25,9 +25,11 @@ interface LayersPanelProps {
   config: ProjectConfig;
   dispatch: React.Dispatch<AppAction>;
   cache: ColorShiftCache;
+  mobile?: boolean;
+  onClose?: () => void;
 }
 
-export function LayersPanel({ layers, selectedLayerId, config, dispatch, cache }: LayersPanelProps) {
+export function LayersPanel({ layers, selectedLayerId, config, dispatch, cache, mobile, onClose }: LayersPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
@@ -136,16 +138,27 @@ export function LayersPanel({ layers, selectedLayerId, config, dispatch, cache }
   const reversedLayers = [...layers].reverse();
 
   return (
-    <div className="flex flex-col h-full bg-gray-900 border-r border-gray-700" style={{ width: 240 }}>
+    <div className="flex flex-col h-full bg-gray-900 border-r border-gray-700" style={{ width: mobile ? '100%' : 240 }}>
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700">
         <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">Layers</span>
-        <button
-          className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition-colors"
-          onClick={() => fileInputRef.current?.click()}
-          title="Add layer from PNG file"
-        >
-          + Add
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+            title="Add layer from PNG file"
+          >
+            + Add
+          </button>
+          {mobile && onClose && (
+            <button
+              className="text-xs bg-red-700 hover:bg-red-600 text-white px-2 py-1 rounded transition-colors"
+              onClick={onClose}
+              title="Close panel"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       <div
@@ -258,9 +271,10 @@ interface LayerPropertiesProps {
   dispatch: React.Dispatch<AppAction>;
   cache: ColorShiftCache;
   frameOffsetMode: boolean;
+  mobile?: boolean;
 }
 
-export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMode }: LayerPropertiesProps) {
+export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMode, mobile }: LayerPropertiesProps) {
   const [showTileModal, setShowTileModal] = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
   const [showHslModal, setShowHslModal] = useState(false);
@@ -531,6 +545,7 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
           onTransientUpdate={updates => updateTransient(updates)}
           onSnapshot={() => dispatch({ type: 'SNAPSHOT' })}
           onClose={() => setShowHslModal(false)}
+          mobile={mobile}
         />
       )}
 
@@ -547,9 +562,10 @@ interface HslDialogProps {
   onTransientUpdate: (updates: Partial<Layer>) => void;
   onSnapshot: () => void;
   onClose: () => void;
+  mobile?: boolean;
 }
 
-function HslDialog({ hsl, opacity, onUpdate, onTransientUpdate, onSnapshot, onClose }: HslDialogProps) {
+function HslDialog({ hsl, opacity, onUpdate, onTransientUpdate, onSnapshot, onClose, mobile }: HslDialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -586,6 +602,125 @@ function HslDialog({ hsl, opacity, onUpdate, onTransientUpdate, onSnapshot, onCl
     dragRef.current = null;
   }
 
+  const sliderContent = (
+    <div className="flex flex-col gap-3 p-4">
+      {/* Hue */}
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-gray-400">Hue (-180 to 180)</label>
+        <div className="flex items-center gap-2">
+          <input
+            type="range" min={-180} max={180} step={1}
+            value={hsl.hue}
+            onPointerDown={onSnapshot}
+            onChange={e => onTransientUpdate({ hsl: { ...hsl, hue: Number(e.target.value) } })}
+            className="flex-1"
+          />
+          <NumericInput
+            value={hsl.hue}
+            min={-180} max={180}
+            onChange={v => onUpdate({ hsl: { ...hsl, hue: v } })}
+            className="bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1 rounded w-16 text-right"
+          />
+        </div>
+      </div>
+
+      {/* Saturation */}
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-gray-400">Saturation (-100 to 100)</label>
+        <div className="flex items-center gap-2">
+          <input
+            type="range" min={-100} max={100} step={1}
+            value={hsl.saturation}
+            onPointerDown={onSnapshot}
+            onChange={e => onTransientUpdate({ hsl: { ...hsl, saturation: Number(e.target.value) } })}
+            className="flex-1"
+          />
+          <NumericInput
+            value={hsl.saturation}
+            min={-100} max={100}
+            onChange={v => onUpdate({ hsl: { ...hsl, saturation: v } })}
+            className="bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1 rounded w-16 text-right"
+          />
+        </div>
+      </div>
+
+      {/* Lightness */}
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-gray-400">Lightness (-100 to 100)</label>
+        <div className="flex items-center gap-2">
+          <input
+            type="range" min={-100} max={100} step={1}
+            value={hsl.lightness}
+            onPointerDown={onSnapshot}
+            onChange={e => onTransientUpdate({ hsl: { ...hsl, lightness: Number(e.target.value) } })}
+            className="flex-1"
+          />
+          <NumericInput
+            value={hsl.lightness}
+            min={-100} max={100}
+            onChange={v => onUpdate({ hsl: { ...hsl, lightness: v } })}
+            className="bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1 rounded w-16 text-right"
+          />
+        </div>
+      </div>
+
+      {/* Opacity */}
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-gray-400">Opacity (0 to 100%)</label>
+        <div className="flex items-center gap-2">
+          <input
+            type="range" min={0} max={100} step={1}
+            value={opacity}
+            onPointerDown={onSnapshot}
+            onChange={e => onTransientUpdate({ opacity: Number(e.target.value) })}
+            className="flex-1"
+          />
+          <NumericInput
+            value={opacity}
+            min={0} max={100}
+            onChange={v => onUpdate({ opacity: v })}
+            className="bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1 rounded w-16 text-right"
+          />
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-between pt-1">
+        <button
+          className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded transition-colors"
+          onClick={() => onUpdate({ hsl: { hue: 0, saturation: 0, lightness: 0 }, opacity: 100 })}
+        >
+          Reset All
+        </button>
+        <button
+          className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded transition-colors"
+          onClick={onClose}
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  );
+
+  // Mobile: bottom sheet
+  if (mobile) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-end bg-black/40"
+        onClick={e => e.target === e.currentTarget && onClose()}
+      >
+        <div className="w-full bg-gray-800 border-t border-gray-600 rounded-t-xl max-h-[80vh] overflow-y-auto">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700">
+            <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">HSL & Opacity</h3>
+            <button className="text-gray-500 hover:text-white text-sm leading-none" onClick={onClose}>✕</button>
+          </div>
+          {sliderContent}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop: draggable floating panel
   return (
     <div
       ref={measuredRef}
@@ -609,104 +744,7 @@ function HslDialog({ hsl, opacity, onUpdate, onTransientUpdate, onSnapshot, onCl
           ✕
         </button>
       </div>
-
-      <div className="flex flex-col gap-3 p-4">
-        {/* Hue */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-400">Hue (-180 to 180)</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="range" min={-180} max={180} step={1}
-              value={hsl.hue}
-              onPointerDown={onSnapshot}
-              onChange={e => onTransientUpdate({ hsl: { ...hsl, hue: Number(e.target.value) } })}
-              className="flex-1"
-            />
-            <NumericInput
-              value={hsl.hue}
-              min={-180} max={180}
-              onChange={v => onUpdate({ hsl: { ...hsl, hue: v } })}
-              className="bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1 rounded w-16 text-right"
-            />
-          </div>
-        </div>
-
-        {/* Saturation */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-400">Saturation (-100 to 100)</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="range" min={-100} max={100} step={1}
-              value={hsl.saturation}
-              onPointerDown={onSnapshot}
-              onChange={e => onTransientUpdate({ hsl: { ...hsl, saturation: Number(e.target.value) } })}
-              className="flex-1"
-            />
-            <NumericInput
-              value={hsl.saturation}
-              min={-100} max={100}
-              onChange={v => onUpdate({ hsl: { ...hsl, saturation: v } })}
-              className="bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1 rounded w-16 text-right"
-            />
-          </div>
-        </div>
-
-        {/* Lightness */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-400">Lightness (-100 to 100)</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="range" min={-100} max={100} step={1}
-              value={hsl.lightness}
-              onPointerDown={onSnapshot}
-              onChange={e => onTransientUpdate({ hsl: { ...hsl, lightness: Number(e.target.value) } })}
-              className="flex-1"
-            />
-            <NumericInput
-              value={hsl.lightness}
-              min={-100} max={100}
-              onChange={v => onUpdate({ hsl: { ...hsl, lightness: v } })}
-              className="bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1 rounded w-16 text-right"
-            />
-          </div>
-        </div>
-
-        {/* Opacity */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-gray-400">Opacity (0 to 100%)</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="range" min={0} max={100} step={1}
-              value={opacity}
-              onPointerDown={onSnapshot}
-              onChange={e => onTransientUpdate({ opacity: Number(e.target.value) })}
-              className="flex-1"
-            />
-            <NumericInput
-              value={opacity}
-              min={0} max={100}
-              onChange={v => onUpdate({ opacity: v })}
-              className="bg-gray-900 border border-gray-600 text-white text-xs px-2 py-1 rounded w-16 text-right"
-            />
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-between pt-1">
-          <button
-            className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-3 py-1.5 rounded transition-colors"
-            onClick={() => onUpdate({ hsl: { hue: 0, saturation: 0, lightness: 0 }, opacity: 100 })}
-          >
-            Reset All
-          </button>
-          <button
-            className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded transition-colors"
-            onClick={onClose}
-          >
-            Done
-          </button>
-        </div>
-      </div>
+      {sliderContent}
     </div>
   );
 }
