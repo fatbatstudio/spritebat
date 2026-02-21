@@ -363,6 +363,7 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
                 height: displayHeight,
                 cursor: selectedLayer ? 'crosshair' : 'default',
                 imageRendering: canvasZoom >= 1 ? 'pixelated' : 'auto',
+                touchAction: 'none',
               }}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
