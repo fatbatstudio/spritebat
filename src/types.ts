@@ -137,7 +137,9 @@ export type AppAction =
   /** Merge the layer at `index` down into the layer at `index - 1`, replacing both with one flattened layer. */
   | { type: 'MERGE_LAYERS_DOWN'; index: number; mergedLayer: Layer }
   /** Reset the project to a blank slate (keeps config, clears layers + library + splitter). */
-  | { type: 'CLOSE_PROJECT' };
+  | { type: 'CLOSE_PROJECT' }
+  /** Push current state to undo stack without modifying present (used before drag/slider interactions). */
+  | { type: 'SNAPSHOT' };
 
 /** Total logical frames in a project */
 export function totalFrames(config: ProjectConfig): number {

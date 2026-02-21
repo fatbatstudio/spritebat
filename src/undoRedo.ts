@@ -81,8 +81,7 @@ export interface UndoRedoState {
 export type UndoRedoAction =
   | AppAction
   | { type: 'UNDO' }
-  | { type: 'REDO' }
-  | { type: 'SNAPSHOT' };
+  | { type: 'REDO' };
 
 // ─── Higher-order reducer ────────────────────────────────────────────────────
 
