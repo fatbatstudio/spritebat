@@ -104,6 +104,8 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showMobileLayers, setShowMobileLayers] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
+  const [mobilePropsOpen, setMobilePropsOpen] = useState(false);
+  const [mobileExportOpen, setMobileExportOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close mobile menu on outside click
@@ -243,12 +245,12 @@ function App() {
           /* ── Mobile header: single row with menu ── */
           <div className="flex items-center px-3 py-1.5 relative" ref={menuRef}>
             {/* Left: branding */}
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-indigo-400 text-sm tracking-wide flex items-center gap-1"><img src="/bat-emoji.png" alt="🦇" className="w-5 h-5" style={{ imageRendering: 'auto' }} /> SpriteBat</span>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <img src="/bat-emoji.png" alt="🦇" className="w-5 h-5 flex-shrink-0" style={{ imageRendering: 'auto' }} />
             </div>
 
             {/* Center: tab switcher */}
-            <div className="flex-1 flex justify-center">
+            <div className="flex-1 flex justify-center mx-1">
               <div className="flex gap-0.5 bg-gray-800 p-0.5 rounded">
                 <button
                   onClick={() => { typedDispatch({ type: 'SET_TAB', tab: 'composer' }); setMenuOpen(false); }}
@@ -580,12 +582,40 @@ function App() {
       {/* ── Layer properties bar (only in composer tab) ── */}
       {state.activeTab === 'composer' && (
         <div className="flex-shrink-0 bg-gray-900 border-t border-gray-700">
-          <LayerProperties layer={selectedLayer} config={state.config} dispatch={typedDispatch} cache={globalCache} frameOffsetMode={state.frameOffsetMode} mobile={isMobile} />
+          {isMobile ? (
+            <>
+              <button
+                onClick={() => setMobilePropsOpen(o => !o)}
+                className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+              >
+                <span className="uppercase tracking-wider font-bold">{selectedLayer ? `▸ ${selectedLayer.name}` : '▸ Layer'}</span>
+                <span className="text-gray-600">{mobilePropsOpen ? '▾' : '▸'}</span>
+              </button>
+              {mobilePropsOpen && (
+                <LayerProperties layer={selectedLayer} config={state.config} dispatch={typedDispatch} cache={globalCache} frameOffsetMode={state.frameOffsetMode} mobile={isMobile} />
+              )}
+            </>
+          ) : (
+            <LayerProperties layer={selectedLayer} config={state.config} dispatch={typedDispatch} cache={globalCache} frameOffsetMode={state.frameOffsetMode} mobile={isMobile} />
+          )}
         </div>
       )}
 
       {/* ── Export bar ── */}
-      <ExportBar state={state} cache={globalCache} />
+      {isMobile ? (
+        <div className="flex-shrink-0 bg-gray-900 border-t border-gray-700">
+          <button
+            onClick={() => setMobileExportOpen(o => !o)}
+            className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+          >
+            <span className="uppercase tracking-wider font-bold">▸ Export</span>
+            <span className="text-gray-600">{mobileExportOpen ? '▾' : '▸'}</span>
+          </button>
+          {mobileExportOpen && <ExportBar state={state} cache={globalCache} />}
+        </div>
+      ) : (
+        <ExportBar state={state} cache={globalCache} />
+      )}
 
       {/* ── Project Config Modal ── */}
       {state.showConfig && (
