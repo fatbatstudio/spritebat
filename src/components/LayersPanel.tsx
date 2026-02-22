@@ -302,106 +302,109 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
   const layoutOk = layer.inputLayout.cols * layer.inputLayout.rows >= total;
 
   return (
-    <div className={`flex items-start gap-x-3 gap-y-1 px-4 py-1.5 flex-wrap content-center ${mobile ? 'pb-3' : 'h-full'}`}>
-      {/* Name */}
-      <div className="flex flex-col gap-0.5">
-        <label className="text-xs text-gray-400">Name</label>
-        <input
-          type="text"
-          value={layer.name}
-          onChange={e => update({ name: e.target.value })}
-          className="bg-gray-800 border border-gray-600 text-white text-xs px-2 py-1 rounded w-28"
-        />
-      </div>
-
-      {/* Type */}
-      <div className="flex flex-col gap-0.5">
-        <label className="text-xs text-gray-400">Type</label>
-        <select
-          value={layer.type}
-          onChange={e => update({ type: e.target.value as LayerType })}
-          className="bg-gray-800 border border-gray-600 text-white text-xs px-1 py-1 rounded"
-        >
-          {LAYER_TYPES_LIST.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-      </div>
-
-      {/* Input layout */}
-      <div className="flex flex-col gap-0.5">
-        <label className={`text-xs ${layoutOk ? 'text-gray-400' : 'text-red-400'}`}>
-          Layout <span className="text-gray-600">(≥{total})</span>
-        </label>
-        <div className="flex items-center gap-1">
-          <NumericInput
-            value={layer.inputLayout.cols}
-            min={1} max={total * 2}
-            onChange={cols => update({ inputLayout: { cols, rows: layer.inputLayout.rows } })}
-            className="bg-gray-800 border border-gray-600 text-white text-xs px-1 py-1 rounded w-10"
+    <div className={`flex flex-wrap items-center gap-x-3 gap-y-3 px-4 py-1.5 ${mobile ? 'pb-3' : 'h-full'}`}>
+      {/* Section 1: Layer identity */}
+      <div className="flex items-start gap-3">
+        {/* Name */}
+        <div className="flex flex-col gap-0.5">
+          <label className="text-xs text-gray-400">Name</label>
+          <input
+            type="text"
+            value={layer.name}
+            onChange={e => update({ name: e.target.value })}
+            className="bg-gray-800 border border-gray-600 text-white text-xs px-2 py-1 rounded w-28"
           />
-          <span className="text-gray-600 text-xs">×</span>
-          <NumericInput
-            value={layer.inputLayout.rows}
-            min={1} max={total * 2}
-            onChange={rows => update({ inputLayout: { cols: layer.inputLayout.cols, rows } })}
-            className="bg-gray-800 border border-gray-600 text-white text-xs px-1 py-1 rounded w-10"
-          />
-          <button
-            className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-400 px-1 py-1 rounded"
-            onClick={() => update({ inputLayout: { ...config.defaultInputLayout } })}
-            title="Reset to project default"
-          >↺</button>
+        </div>
+
+        {/* Type */}
+        <div className="flex flex-col gap-0.5">
+          <label className="text-xs text-gray-400">Type</label>
+          <select
+            value={layer.type}
+            onChange={e => update({ type: e.target.value as LayerType })}
+            className="bg-gray-800 border border-gray-600 text-white text-xs px-1 py-1 rounded"
+          >
+            {LAYER_TYPES_LIST.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+
+        {/* Input layout */}
+        <div className="flex flex-col gap-0.5">
+          <label className={`text-xs ${layoutOk ? 'text-gray-400' : 'text-red-400'}`}>
+            Layout <span className="text-gray-600">(≥{total})</span>
+          </label>
+          <div className="flex items-center gap-1">
+            <NumericInput
+              value={layer.inputLayout.cols}
+              min={1} max={total * 2}
+              onChange={cols => update({ inputLayout: { cols, rows: layer.inputLayout.rows } })}
+              className="bg-gray-800 border border-gray-600 text-white text-xs px-1 py-1 rounded w-10"
+            />
+            <span className="text-gray-600 text-xs">×</span>
+            <NumericInput
+              value={layer.inputLayout.rows}
+              min={1} max={total * 2}
+              onChange={rows => update({ inputLayout: { cols: layer.inputLayout.cols, rows } })}
+              className="bg-gray-800 border border-gray-600 text-white text-xs px-1 py-1 rounded w-10"
+            />
+            <button
+              className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-400 px-1 py-1 rounded"
+              onClick={() => update({ inputLayout: { ...config.defaultInputLayout } })}
+              title="Reset to project default"
+            >↺</button>
+          </div>
         </div>
       </div>
 
-      <div className="w-px h-7 bg-gray-700" />
+      {/* Section 2: HSL + Adjust */}
+      <div className="flex items-center gap-3">
+        <div className="w-px self-stretch bg-gray-700" />
 
-      {/* Hue */}
-      <div className="flex flex-col gap-0.5" style={{ minWidth: 80 }}>
-        <label className="text-xs text-gray-400">Hue <span className="text-gray-500">{layer.hsl.hue}°</span></label>
-        <input
-          type="range" min={-180} max={180} step={1}
-          value={layer.hsl.hue}
-          onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
-          onChange={e => updateTransient({ hsl: { ...layer.hsl, hue: Number(e.target.value) } })}
-        />
-      </div>
+        {/* Hue */}
+        <div className="flex flex-col gap-1.5" style={{ minWidth: 80 }}>
+          <label className="text-xs text-gray-400">Hue <span className="text-gray-500">{layer.hsl.hue}°</span></label>
+          <input
+            type="range" min={-180} max={180} step={1}
+            value={layer.hsl.hue}
+            onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
+            onChange={e => updateTransient({ hsl: { ...layer.hsl, hue: Number(e.target.value) } })}
+          />
+        </div>
 
-      {/* Saturation */}
-      <div className="flex flex-col gap-0.5" style={{ minWidth: 80 }}>
-        <label className="text-xs text-gray-400">Sat <span className="text-gray-500">{layer.hsl.saturation}</span></label>
-        <input
-          type="range" min={-100} max={100} step={1}
-          value={layer.hsl.saturation}
-          onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
-          onChange={e => updateTransient({ hsl: { ...layer.hsl, saturation: Number(e.target.value) } })}
-        />
-      </div>
+        {/* Saturation */}
+        <div className="flex flex-col gap-1.5" style={{ minWidth: 80 }}>
+          <label className="text-xs text-gray-400">Sat <span className="text-gray-500">{layer.hsl.saturation}</span></label>
+          <input
+            type="range" min={-100} max={100} step={1}
+            value={layer.hsl.saturation}
+            onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
+            onChange={e => updateTransient({ hsl: { ...layer.hsl, saturation: Number(e.target.value) } })}
+          />
+        </div>
 
-      {/* Lightness */}
-      <div className="flex flex-col gap-0.5" style={{ minWidth: 80 }}>
-        <label className="text-xs text-gray-400">Light <span className="text-gray-500">{layer.hsl.lightness}</span></label>
-        <input
-          type="range" min={-100} max={100} step={1}
-          value={layer.hsl.lightness}
-          onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
-          onChange={e => updateTransient({ hsl: { ...layer.hsl, lightness: Number(e.target.value) } })}
-        />
-      </div>
+        {/* Lightness */}
+        <div className="flex flex-col gap-1.5" style={{ minWidth: 80 }}>
+          <label className="text-xs text-gray-400">Light <span className="text-gray-500">{layer.hsl.lightness}</span></label>
+          <input
+            type="range" min={-100} max={100} step={1}
+            value={layer.hsl.lightness}
+            onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
+            onChange={e => updateTransient({ hsl: { ...layer.hsl, lightness: Number(e.target.value) } })}
+          />
+        </div>
 
-      {/* Opacity */}
-      <div className="flex flex-col gap-0.5" style={{ minWidth: 80 }}>
-        <label className="text-xs text-gray-400">Opacity <span className="text-gray-500">{layer.opacity}%</span></label>
-        <input
-          type="range" min={0} max={100} step={1}
-          value={layer.opacity}
-          onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
-          onChange={e => updateTransient({ opacity: Number(e.target.value) })}
-        />
-      </div>
+        {/* Opacity */}
+        <div className="flex flex-col gap-1.5" style={{ minWidth: 80 }}>
+          <label className="text-xs text-gray-400">Opacity <span className="text-gray-500">{layer.opacity}%</span></label>
+          <input
+            type="range" min={0} max={100} step={1}
+            value={layer.opacity}
+            onPointerDown={() => dispatch({ type: 'SNAPSHOT' })}
+            onChange={e => updateTransient({ opacity: Number(e.target.value) })}
+          />
+        </div>
 
-      {/* Adjust HSL — opens dialog for precise numeric input */}
-      <div className="flex flex-col gap-0.5">
-        <label className="text-xs text-gray-400">&nbsp;</label>
+        {/* Adjust HSL — opens dialog for precise numeric input */}
         <button
           className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-1.5 py-1 rounded transition-colors"
           onClick={() => setShowHslModal(true)}
@@ -411,37 +414,29 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
         </button>
       </div>
 
-      <div className="w-px h-7 bg-gray-700" />
+      {/* Section 3: Offset + action buttons */}
+      <div className="flex items-center gap-2">
+        <div className="w-px self-stretch bg-gray-700" />
 
-      {/* Offset X / Y combined */}
-      <div className="flex flex-col gap-0.5">
         <label className="text-xs text-gray-400">Offset</label>
-        <div className="flex items-center gap-1">
-          <NumericInput
-            value={layer.offsetX}
-            min={-512} max={512}
-            onChange={v => update({ offsetX: v })}
-            className="bg-gray-800 border border-gray-600 text-white text-xs px-1 py-1 rounded w-12"
-          />
-          <NumericInput
-            value={layer.offsetY}
-            min={-512} max={512}
-            onChange={v => update({ offsetY: v })}
-            className="bg-gray-800 border border-gray-600 text-white text-xs px-1 py-1 rounded w-12"
-          />
-          <button
-            className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-400 px-1 py-1 rounded transition-colors"
-            onClick={() => update({ offsetX: 0, offsetY: 0 })}
-            title="Reset position to 0,0"
-          >↺</button>
-        </div>
-      </div>
+        <NumericInput
+          value={layer.offsetX}
+          min={-512} max={512}
+          onChange={v => update({ offsetX: v })}
+          className="bg-gray-800 border border-gray-600 text-white text-xs px-1 py-1 rounded w-12"
+        />
+        <NumericInput
+          value={layer.offsetY}
+          min={-512} max={512}
+          onChange={v => update({ offsetY: v })}
+          className="bg-gray-800 border border-gray-600 text-white text-xs px-1 py-1 rounded w-12"
+        />
+        <button
+          className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-400 px-1 py-1 rounded transition-colors"
+          onClick={() => update({ offsetX: 0, offsetY: 0 })}
+          title="Reset position to 0,0"
+        >↺</button>
 
-      <div className="w-px h-7 bg-gray-700" />
-
-      {/* Tile to Sheet */}
-      <div className="flex flex-col gap-0.5">
-        <label className="text-xs text-gray-400">&nbsp;</label>
         <button
           className="text-xs bg-violet-700 hover:bg-violet-600 text-white px-2 py-1 rounded transition-colors whitespace-nowrap"
           onClick={() => setShowTileModal(true)}
@@ -449,11 +444,7 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
         >
           ⊞ Tile
         </button>
-      </div>
 
-      {/* Clear Frames */}
-      <div className="flex flex-col gap-0.5">
-        <label className="text-xs text-gray-400">&nbsp;</label>
         <button
           className="text-xs bg-gray-700 hover:bg-red-900 hover:text-red-300 text-gray-300 px-2 py-1 rounded transition-colors whitespace-nowrap"
           onClick={() => setShowClearModal(true)}
@@ -462,36 +453,28 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
         >
           ✂ Clear
         </button>
-      </div>
 
-      {/* Frame Offset Mode toggle */}
-      <div className="flex flex-col gap-0.5">
-        <label className="text-xs text-gray-400">
-          {layer.frameOffsets?.some(o => o.x !== 0 || o.y !== 0) && (
-            <span className="text-amber-400">●</span>
-          )}
-          &nbsp;
-        </label>
-        <div className="flex gap-1">
+        {layer.frameOffsets?.some(o => o.x !== 0 || o.y !== 0) && (
+          <span className="text-amber-400 text-xs leading-none">●</span>
+        )}
+        <button
+          className={`text-xs px-2 py-1 rounded transition-colors whitespace-nowrap ${
+            frameOffsetMode
+              ? 'bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold'
+              : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+          }`}
+          onClick={() => dispatch({ type: 'SET_FRAME_OFFSET_MODE', active: !frameOffsetMode })}
+          title="Toggle frame offset drag mode — drag the canvas to nudge this layer per frame"
+        >
+          ↕ Offsets
+        </button>
+        {layer.frameOffsets?.some(o => o.x !== 0 || o.y !== 0) && (
           <button
-            className={`text-xs px-2 py-1 rounded transition-colors whitespace-nowrap ${
-              frameOffsetMode
-                ? 'bg-amber-500 hover:bg-amber-400 text-gray-900 font-bold'
-                : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-            }`}
-            onClick={() => dispatch({ type: 'SET_FRAME_OFFSET_MODE', active: !frameOffsetMode })}
-            title="Toggle frame offset drag mode — drag the canvas to nudge this layer per frame"
-          >
-            ↕ Offsets
-          </button>
-          {layer.frameOffsets?.some(o => o.x !== 0 || o.y !== 0) && (
-            <button
-              className="text-xs px-1.5 py-1 rounded bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 transition-colors"
-              onClick={() => update({ frameOffsets: undefined })}
-              title="Clear all frame offsets"
-            >✕</button>
-          )}
-        </div>
+            className="text-xs px-1.5 py-1 rounded bg-gray-700 hover:bg-red-900 text-gray-400 hover:text-red-300 transition-colors"
+            onClick={() => update({ frameOffsets: undefined })}
+            title="Clear all frame offsets"
+          >✕</button>
+        )}
       </div>
 
       {/* Tile to Sheet modal */}

@@ -328,7 +328,7 @@ function App() {
               {/* Left: branding */}
               <div className="flex-1 flex items-center gap-2">
                 <span className="font-bold text-indigo-400 text-sm tracking-wide flex items-center gap-1"><img src={batEmojiUrl} alt="🦇" className="w-5 h-5" style={{ imageRendering: 'auto' }} /> SpriteBat</span>
-                <span className="text-gray-600 text-xs">v1.02</span>
+                <span className="text-gray-600 text-xs">v1.03</span>
               </div>
 
               {/* Center: tab switcher */}
@@ -640,7 +640,7 @@ function App() {
               <div className="flex items-center gap-2">
                 <img src={batEmojiUrl} alt="🦇" className="w-6 h-6" style={{ imageRendering: 'auto' }} />
                 <span className="font-bold text-indigo-400 text-base tracking-wide">SpriteBat</span>
-                <span className="text-gray-500 text-xs">v1.02</span>
+                <span className="text-gray-500 text-xs">v1.03</span>
                 <button
                   onClick={() => setShowChangelog(true)}
                   className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-0.5 rounded transition-colors"
@@ -716,6 +716,17 @@ function App() {
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
+                  </svg>
+                </a>
+                <a
+                  href="https://fatbatstudio.itch.io/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-500 hover:text-[#fa5c5c] transition-colors"
+                  title="FATBAT Studio on itch.io"
+                >
+                  <svg width="16" height="16" viewBox="0 0 245.371 220.736" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M31.99 1.365C21.287 7.72.2 31.945 0 38.298v10.516C0 62.144 12.46 73.86 23.773 73.86c13.584 0 24.902-11.258 24.903-24.62 0 13.362 10.93 24.62 24.515 24.62 13.586 0 24.165-11.258 24.165-24.62 0 13.362 11.622 24.62 25.207 24.62h.246c13.586 0 25.208-11.258 25.208-24.62 0 13.362 10.58 24.62 24.164 24.62 13.585 0 24.515-11.258 24.515-24.62 0 13.362 11.32 24.62 24.903 24.62 11.313 0 23.773-11.714 23.773-25.046V38.298c-.2-6.354-21.287-30.58-31.988-36.933C180.118.197 157.056-.005 122.685 0 88.316-.005 65.253.197 31.99 1.365zm65.194 66.217a28.025 28.025 0 01-4.78 6.155c-5.128 5.014-12.157 8.122-19.906 8.122a28.482 28.482 0 01-19.948-8.126c-1.858-1.82-3.27-3.766-4.563-6.032l-.006.004c-1.292 2.27-3.092 4.215-4.954 6.037a28.5 28.5 0 01-19.948 8.12c-.934 0-1.906-.258-2.692-.528-1.092 11.372-1.553 22.24-1.716 30.164l-.002.045c-.02 4.024-.04 7.333-.06 11.93.21 23.86-2.363 77.334 10.52 90.473 19.964 4.655 56.7 6.775 93.555 6.788h.006c36.854-.013 73.59-2.133 93.554-6.788 12.883-13.14 10.31-66.614 10.52-90.474-.022-4.596-.04-7.905-.06-11.93l-.003-.045c-.163-7.925-.623-18.793-1.715-30.165-.786.27-1.758.528-2.692.528a28.5 28.5 0 01-19.948-8.12c-1.862-1.822-3.662-3.766-4.955-6.037l-.006-.004c-1.294 2.266-2.705 4.213-4.563 6.032a28.48 28.48 0 01-19.947 8.126c-7.748 0-14.778-3.108-19.906-8.122a28.025 28.025 0 01-4.78-6.155 27.99 27.99 0 01-4.736 6.155 28.49 28.49 0 01-19.95 8.122c-7.71 0-14.694-3.108-19.824-8.122a27.963 27.963 0 01-4.694-6.155zm-8.979 69.09c13.15.2 27.316 5.2 33.58 17.394 6.263-12.186 20.43-17.193 33.58-17.394 17.834.593 32.112 12.874 32.112 31.06 0 20.47-14.272 33.96-32.112 52.752-6.806 7.18-20.452 17.2-33.58 25.253-13.127-8.053-26.773-18.073-33.58-25.253-17.84-18.793-32.11-32.282-32.11-52.752 0-18.186 14.277-30.467 32.11-31.06z" />
                   </svg>
                 </a>
               </div>
@@ -796,6 +807,18 @@ function App() {
               <span className="font-bold text-indigo-400 text-base tracking-wide">What's New</span>
               <button onClick={() => setShowChangelog(false)} className="text-gray-500 hover:text-white text-lg leading-none">✕</button>
             </div>
+
+            {/* v1.03 */}
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-bold text-gray-200">v1.03 <span className="text-gray-500 font-normal">— Feb 22, 2026</span></h3>
+              <ul className="list-disc list-inside text-xs text-gray-400 space-y-1 pl-1">
+                <li>What's New dialog to view version history from the About screen</li>
+                <li>Layer Properties bar redesigned into 3 atomic sections that wrap gracefully on tablets</li>
+                <li>itch.io deployment via GitHub Actions for automatic publishing on push</li>
+              </ul>
+            </div>
+
+            <div className="border-t border-gray-800" />
 
             {/* v1.02 */}
             <div className="flex flex-col gap-2">

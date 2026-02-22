@@ -2,6 +2,15 @@
 
 All notable changes to SpriteBat are documented here.
 
+## v1.03 — 2026-02-22
+
+### New Features
+- **What's New dialog** accessible from the About screen to view version history in-app
+- **itch.io deployment** via GitHub Actions for automatic publishing on push to main
+
+### Improvements
+- Layer Properties bar redesigned into 3 atomic sections (identity, HSL, actions) that wrap as units on tablets and smaller screens
+
 ## v1.02 — 2026-02-21
 
 ### New Features
