@@ -15,6 +15,8 @@ import { ExportBar } from './components/ExportBar';
 import { LibraryTab } from './components/LibraryTab';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useIsMobile } from './hooks/useIsMobile';
+import batEmojiUrl from '/bat-emoji.png?url';
+import tutorialUrl from '/tutorial-character.spritebat?url';
 
 // Global color shift cache — persists across renders
 const globalCache = new ColorShiftCache();
@@ -176,7 +178,7 @@ function App() {
   async function handleLoadTutorial() {
     setTutorialBusy(true);
     try {
-      const response = await fetch('/tutorial-character.spritebat');
+      const response = await fetch(tutorialUrl);
       if (!response.ok) throw new Error('Failed to fetch example project');
       const blob = await response.blob();
       const file = new File([blob], 'tutorial-character.spritebat');
@@ -247,7 +249,7 @@ function App() {
           <div className="flex items-center px-3 py-1.5 relative" ref={menuRef}>
             {/* Left: branding */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              <img src="/bat-emoji.png" alt="🦇" className="w-5 h-5 flex-shrink-0" style={{ imageRendering: 'auto' }} />
+              <img src={batEmojiUrl} alt="🦇" className="w-5 h-5 flex-shrink-0" style={{ imageRendering: 'auto' }} />
             </div>
 
             {/* Center: tab switcher */}
@@ -325,7 +327,7 @@ function App() {
             <div className="flex items-center px-4 py-1.5">
               {/* Left: branding */}
               <div className="flex-1 flex items-center gap-2">
-                <span className="font-bold text-indigo-400 text-sm tracking-wide flex items-center gap-1"><img src="/bat-emoji.png" alt="🦇" className="w-5 h-5" style={{ imageRendering: 'auto' }} /> SpriteBat</span>
+                <span className="font-bold text-indigo-400 text-sm tracking-wide flex items-center gap-1"><img src={batEmojiUrl} alt="🦇" className="w-5 h-5" style={{ imageRendering: 'auto' }} /> SpriteBat</span>
                 <span className="text-gray-600 text-xs">v1.02</span>
               </div>
 
@@ -636,7 +638,7 @@ function App() {
           <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl flex flex-col gap-4 p-6 max-h-[90vh] overflow-y-auto" style={{ maxWidth: 680, width: '90vw' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <img src="/bat-emoji.png" alt="🦇" className="w-6 h-6" style={{ imageRendering: 'auto' }} />
+                <img src={batEmojiUrl} alt="🦇" className="w-6 h-6" style={{ imageRendering: 'auto' }} />
                 <span className="font-bold text-indigo-400 text-base tracking-wide">SpriteBat</span>
                 <span className="text-gray-500 text-xs">v1.02</span>
                 <button
