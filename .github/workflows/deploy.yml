@@ -24,10 +24,15 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+
+      # Build for GitHub Pages (absolute paths, base '/')
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
+      # Rebuild for itch.io (relative paths, base './')
+      - run: npx vite build --base ./
       - uses: actions/upload-artifact@v4
         with:
           name: dist-itchio
