@@ -857,7 +857,7 @@ function App() {
 
             {/* v1.04 */}
             <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-bold text-gray-200">v1.04 <span className="text-gray-500 font-normal">— Feb 26, 2026</span></h3>
+              <h3 className="text-sm font-bold text-gray-200">v1.04 <span className="text-gray-500 font-normal">- Feb 26, 2026</span></h3>
               <ul className="list-disc list-inside text-xs text-gray-400 space-y-1 pl-1">
                 <li>Bugfixes to undo/redo actions and library asset management.</li>
               </ul>
@@ -867,7 +867,7 @@ function App() {
 
             {/* v1.03 */}
             <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-bold text-gray-200">v1.03 <span className="text-gray-500 font-normal">— Feb 22, 2026</span></h3>
+              <h3 className="text-sm font-bold text-gray-200">v1.03 <span className="text-gray-500 font-normal">- Feb 22, 2026</span></h3>
               <ul className="list-disc list-inside text-xs text-gray-400 space-y-1 pl-1">
                 <li>What's New dialog to view version history from the About screen</li>
                 <li>Layer Properties bar redesigned into 3 atomic sections that wrap gracefully on tablets</li>
@@ -879,7 +879,7 @@ function App() {
 
             {/* v1.02 */}
             <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-bold text-gray-200">v1.02 <span className="text-gray-500 font-normal">— Feb 21, 2026</span></h3>
+              <h3 className="text-sm font-bold text-gray-200">v1.02 <span className="text-gray-500 font-normal">- Feb 21, 2026</span></h3>
               <ul className="list-disc list-inside text-xs text-gray-400 space-y-1 pl-1">
                 <li>Try Example button to load a bundled tutorial project</li>
                 <li>Library tag sidebar with counts and filters (All / Untagged / by tag)</li>
@@ -897,7 +897,7 @@ function App() {
 
             {/* v1.01 */}
             <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-bold text-gray-200">v1.01 <span className="text-gray-500 font-normal">— Feb 20, 2026</span></h3>
+              <h3 className="text-sm font-bold text-gray-200">v1.01 <span className="text-gray-500 font-normal">- Feb 20, 2026</span></h3>
               <ul className="list-disc list-inside text-xs text-gray-400 space-y-1 pl-1">
                 <li>Save/load library as standalone .spritebat files</li>
                 <li>Export per-layer sheet and single frame</li>
@@ -915,7 +915,7 @@ function App() {
 
             {/* v1.0 */}
             <div className="flex flex-col gap-2">
-              <h3 className="text-sm font-bold text-gray-200">v1.0 <span className="text-gray-500 font-normal">— Feb 19, 2026</span></h3>
+              <h3 className="text-sm font-bold text-gray-200">v1.0 <span className="text-gray-500 font-normal">- Feb 19, 2026</span></h3>
               <ul className="list-disc list-inside text-xs text-gray-400 space-y-1 pl-1">
                 <li>Initial release with multi-layer sprite sheet compositing</li>
                 <li>Layer system with types, visibility, opacity, and reordering</li>

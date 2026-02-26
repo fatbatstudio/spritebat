@@ -1,13 +1,13 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to SpriteBat are documented here.
 
-## v1.04 � 2026-02-26
+## v1.04 - 2026-02-26
 
 ### Fixes
 - Bugfixes to undo/redo actions and library asset management.
 
-## v1.03 — 2026-02-22
+## v1.03 - 2026-02-22
 
 ### New Features
 - **What's New dialog** accessible from the About screen to view version history in-app
@@ -16,7 +16,7 @@ All notable changes to SpriteBat are documented here.
 ### Improvements
 - Layer Properties bar redesigned into 3 atomic sections (identity, HSL, actions) that wrap as units on tablets and smaller screens
 
-## v1.02 — 2026-02-21
+## v1.02 - 2026-02-21
 
 ### New Features
 - **Try Example** button in the header loads a bundled tutorial project to explore SpriteBat's features
@@ -38,7 +38,7 @@ All notable changes to SpriteBat are documented here.
 - Canvas touch support with `touchAction: 'none'` for tablet layer dragging
 - Splitter zoom level persisted in app state across tab switches
 
-## v1.01 — 2026-02-20
+## v1.01 - 2026-02-20
 
 ### New Features
 - **Save/load library** as standalone .spritebat files
@@ -58,7 +58,7 @@ All notable changes to SpriteBat are documented here.
 - About dialog with feature list and social links
 - GPL-3.0 license added
 
-## v1.0 — 2026-02-19
+## v1.0 - 2026-02-19
 
 ### Initial Release
 - **Composer** with multi-layer sprite sheet compositing
