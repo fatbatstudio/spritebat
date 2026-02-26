@@ -185,8 +185,12 @@ export function LibraryTab({ state, dispatch }: LibraryTabProps) {
         alert('This .spritebat file does not contain any library assets.');
         return;
       }
+      const usedIds = new Set(library.map(a => a.id));
       for (const asset of project.library) {
-        dispatch({ type: 'ADD_LIBRARY_ASSET', asset });
+        let id = asset.id;
+        while (usedIds.has(id)) id = crypto.randomUUID();
+        usedIds.add(id);
+        dispatch({ type: 'ADD_LIBRARY_ASSET', asset: { ...asset, id } });
       }
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Failed to import library from project file.');

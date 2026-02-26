@@ -2,6 +2,11 @@
 
 All notable changes to SpriteBat are documented here.
 
+## v1.04 — 2026-02-26
+
+### Fixes
+- Bugfixes to undo/redo actions and library asset management.
+
 ## v1.03 â€” 2026-02-22
 
 ### New Features
@@ -63,3 +68,4 @@ All notable changes to SpriteBat are documented here.
 - **Export** composited sheet as PNG, individual frames as ZIP
 - **.spritebat project files** (ZIP-based) for saving and loading full project state
 - **Asset Library** for storing and organizing extracted sprites
+

@@ -112,9 +112,6 @@ export function LayersPanel({ layers, selectedLayerId, config, dispatch, cache, 
       const objectUrl = URL.createObjectURL(blob);
       const img = new Image();
       img.onload = () => {
-        // Revoke old object URLs (but not if they're shared with library assets)
-        if (topLayer.objectUrl) URL.revokeObjectURL(topLayer.objectUrl);
-        if (bottomLayer.objectUrl) URL.revokeObjectURL(bottomLayer.objectUrl);
         const mergedLayer: Layer = {
           id: crypto.randomUUID(),
           name: `${bottomLayer.name} + ${topLayer.name}`,
@@ -241,7 +238,6 @@ export function LayersPanel({ layers, selectedLayerId, config, dispatch, cache, 
                 className="text-gray-600 hover:text-red-400 flex-shrink-0 text-sm"
                 onClick={e => {
                   e.stopPropagation();
-                  if (layer.objectUrl) URL.revokeObjectURL(layer.objectUrl);
                   dispatch({ type: 'REMOVE_LAYER', id: layer.id });
                 }}
                 title="Remove layer"
@@ -483,8 +479,6 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
           layer={layer}
           config={config}
           onApply={(newImage, newObjectUrl) => {
-            // Revoke old object URL
-            if (layer.objectUrl) URL.revokeObjectURL(layer.objectUrl);
             // Invalidate color shift cache for this layer
             cache.invalidate(layer.id);
             // Update the layer with the new full sheet image + matching layout.
@@ -510,7 +504,6 @@ export function LayerProperties({ layer, config, dispatch, cache, frameOffsetMod
           layer={layer}
           config={config}
           onApply={(newImage, newObjectUrl) => {
-            if (layer.objectUrl) URL.revokeObjectURL(layer.objectUrl);
             cache.invalidate(layer.id);
             update({ image: newImage, objectUrl: newObjectUrl });
             setShowClearModal(false);

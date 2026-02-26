@@ -82,10 +82,24 @@ function App() {
 
   const selectedLayer = state.layers.find(l => l.id === state.selectedLayerId);
 
+  // Track blob URL ownership across present + undo/redo history.
+  // Revoke URLs only after they disappear from all tracked states.
+  const trackedUrlsRef = useRef<Set<string>>(new Set());
+
   // ── Keyboard shortcuts: Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z ───────────────────
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     const ctrl = e.ctrlKey || e.metaKey;
     if (!ctrl) return;
+    const t = e.target as HTMLElement | null;
+    if (
+      t &&
+      (t.tagName === 'INPUT' ||
+        t.tagName === 'TEXTAREA' ||
+        t.tagName === 'SELECT' ||
+        t.isContentEditable)
+    ) {
+      return;
+    }
 
     if (e.key === 'z' && !e.shiftKey) {
       e.preventDefault();
@@ -100,6 +114,39 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
+
+  useEffect(() => {
+    const nextUrls = new Set<string>();
+
+    const addUrl = (url: string | null | undefined) => {
+      if (url) nextUrls.add(url);
+    };
+
+    for (const l of undoState.present.layers) addUrl(l.objectUrl);
+    for (const a of undoState.present.library) addUrl(a.objectUrl);
+    addUrl(undoState.present.splitter.objectUrl);
+
+    for (const snap of undoState.past) {
+      for (const l of snap.layers) addUrl(l.objectUrl);
+      for (const a of snap.library) addUrl(a.objectUrl);
+    }
+    for (const snap of undoState.future) {
+      for (const l of snap.layers) addUrl(l.objectUrl);
+      for (const a of snap.library) addUrl(a.objectUrl);
+    }
+
+    for (const oldUrl of trackedUrlsRef.current) {
+      if (!nextUrls.has(oldUrl)) URL.revokeObjectURL(oldUrl);
+    }
+    trackedUrlsRef.current = nextUrls;
+  }, [undoState]);
+
+  useEffect(() => {
+    return () => {
+      for (const url of trackedUrlsRef.current) URL.revokeObjectURL(url);
+      trackedUrlsRef.current.clear();
+    };
+  }, []);
 
   // ── Mobile responsive ──────────────────────────────────────────────────────
   const isMobile = useIsMobile();
@@ -328,7 +375,7 @@ function App() {
               {/* Left: branding */}
               <div className="flex-1 flex items-center gap-2">
                 <span className="font-bold text-indigo-400 text-sm tracking-wide flex items-center gap-1"><img src={batEmojiUrl} alt="🦇" className="w-5 h-5" style={{ imageRendering: 'auto' }} /> SpriteBat</span>
-                <span className="text-gray-600 text-xs">v1.03</span>
+                <span className="text-gray-600 text-xs">v1.04</span>
               </div>
 
               {/* Center: tab switcher */}
@@ -640,7 +687,7 @@ function App() {
               <div className="flex items-center gap-2">
                 <img src={batEmojiUrl} alt="🦇" className="w-6 h-6" style={{ imageRendering: 'auto' }} />
                 <span className="font-bold text-indigo-400 text-base tracking-wide">SpriteBat</span>
-                <span className="text-gray-500 text-xs">v1.03</span>
+                <span className="text-gray-500 text-xs">v1.04</span>
                 <button
                   onClick={() => setShowChangelog(true)}
                   className="text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-0.5 rounded transition-colors"
@@ -807,6 +854,16 @@ function App() {
               <span className="font-bold text-indigo-400 text-base tracking-wide">What's New</span>
               <button onClick={() => setShowChangelog(false)} className="text-gray-500 hover:text-white text-lg leading-none">✕</button>
             </div>
+
+            {/* v1.04 */}
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-bold text-gray-200">v1.04 <span className="text-gray-500 font-normal">— Feb 26, 2026</span></h3>
+              <ul className="list-disc list-inside text-xs text-gray-400 space-y-1 pl-1">
+                <li>Bugfixes to undo/redo actions and library asset management.</li>
+              </ul>
+            </div>
+
+            <div className="border-t border-gray-800" />
 
             {/* v1.03 */}
             <div className="flex flex-col gap-2">

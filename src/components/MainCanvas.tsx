@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import type { AppState, AppAction, Layer } from '../types';
 import { frameRect, flatIndex } from '../types';
 import { ColorShiftCache } from '../colorShift';
-import { compositeFrame } from '../compositing';
+import { compositeFrame, renderFullSheet } from '../compositing';
 import { getDirectionRow } from '../state';
 import { useIsMobile } from '../hooks/useIsMobile';
 
@@ -232,21 +232,7 @@ export function MainCanvas({ state, dispatch, cache }: MainCanvasProps) {
     canvas.height = sheetH;
     const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, sheetW, sheetH);
-
-    // Draw each frame at its export-layout position (matches renderFullSheet logic)
-    for (let d = 0; d < directions; d++) {
-      for (let f = 0; f < framesPerDirection; f++) {
-        const n = flatIndex(d, f, framesPerDirection);
-        if (n >= totalFrameCount) continue;
-        const destCol = n % exportCols;
-        const destRow = Math.floor(n / exportCols);
-        const frameCanvas = document.createElement('canvas');
-        frameCanvas.width = frameWidth;
-        frameCanvas.height = frameHeight;
-        compositeFrame(frameCanvas, layers, config, d, f, cache);
-        ctx.drawImage(frameCanvas, destCol * frameWidth, destRow * frameHeight);
-      }
-    }
+    ctx.drawImage(renderFullSheet(layers, config, cache), 0, 0);
 
     // Draw grid lines on top
     ctx.strokeStyle = 'rgba(99,102,241,0.3)';
